@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  --background: white;
+  --foreground: black;
+}
+
+
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: white;
+    --foreground: white;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Times New Roman', Times, serif;
+}
+

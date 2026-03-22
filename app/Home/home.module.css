@@ -1,0 +1,48 @@
+
+.heroSection {
+    display: grid;
+    width: 100%;
+    justify-content: center;
+    font-family: 'Times New Roman', Times, serif;
+    align-items: center;
+    padding-bottom: 2vh;
+}
+
+.heroSection h3, .heroSection h4, .heroSection h5{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+}
+
+.heroSection h5{
+    gap: 15px;
+}
+
+.buttons{
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.buttons a{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+@media (min-width: 1024px) {
+    .heroSection{
+        font-size: 27px;
+    }
+}
+
+
+@media (max-width: 1024px) {
+    .buttons{
+        display: grid;
+    }
+}

@@ -1,0 +1,725 @@
+.tmp{
+    background-color: black;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background-color: black;
+  position: relative;
+  top: 0;
+  position: sticky;
+  height: 18vh;
+  z-index: 1000;
+}
+
+.logo{
+    height: 100%;
+    max-height: 110px;
+    width: 90px;
+    max-width: 270px;
+}
+
+/*
+
+/* NAV (DESKTOP) */
+.nav {
+  display: flex;
+  gap: 15px;
+  background-color: black;
+}
+
+/* HAMBURGER */
+.hamburger {
+  display: none;
+  font-size: 30px;
+  cursor: pointer;
+  user-select: none;
+  background-color: black;
+  color: orangered;
+  padding: 13px;
+  border: 2px solid orangered;
+  border-radius: 8px;
+}
+
+.hamburger:hover {
+   color: black;
+   background-color: orangered;
+   border: black 2px solid;
+}
+
+.button{
+  color: orangered;
+  border: 2px solid orangered;
+  height: 50px;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30px;
+  padding: 20px;
+}
+
+
+
+#contact{
+  border: 2px solid chartreuse;
+  color: chartreuse;
+}
+
+
+.button:hover{
+  color: aqua;
+  height: 60px;
+  width: 130px;
+  border: 2px solid aqua;
+}
+
+#contact:hover{
+    border: 2px solid aqua;
+    color: aqua;
+}
+
+/* ------------------------ Home -----------------------*/
+
+.home{
+  background-color: rgb(18, 1, 1);
+  color: orangered;
+  width: 100%;
+  height: 82vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.name, .hero_buttons, .tagline{
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.name{
+  font-size: 100px;
+  font-family: 'Times New Roman', Times, serif;
+  padding-top: 21vh;
+}
+
+.tagline{
+  font-size: 30px;
+  margin-bottom: 1.5vh;
+}
+
+/* ------------------- About ----------------------- */
+
+
+#about{
+    height: auto;
+    width: 100%;
+    background-color: black;
+}
+
+.about_image img{
+    border-radius: 200px;
+    width: 80%;
+}
+.about_sumit{
+    width: 100%;
+    height:auto;
+    color: orangered;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+
+}
+
+
+.about_info {
+    width: 100%;
+    height: 5vh;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    color: aliceblue;
+}
+#about_p1{
+    width: 100%;
+    height: 2vh;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin-bottom: 1vh;
+   color: orangered;
+}
+
+#about_p2{
+    font-size: 10px;
+    width: 100%;
+    height: 2vh;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    color: chartreuse;
+  
+}
+.about_img{
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  height: auto;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.about_sumit{
+    padding-left: 30px;
+    padding-right: 30px;
+    color: aqua;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.about_sumit span{
+    color: orangered;
+}
+.myinfo ul{
+    list-style: none;
+    align-items: center;
+    display: flexbox;
+    justify-content: space-evenly;
+}
+.mi2{
+    margin-top: 10px;
+    margin-right: 15px;
+    display: grid;
+}
+
+
+
+/* ---------------- Contacts --------------------*/
+
+.contacts{
+    height: auto;
+    width: 100%;
+    background-color: black;
+}
+#contact_image img{
+    border-radius: 200px;
+    width: 80%;
+}
+.contact_sumit{
+    width: 100%;
+    height:auto;
+    color: white;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    color: chartreuse;
+}
+.linkedin, .github, .utube, .gmail, .mobile, .cv{
+    width: 100%;
+    height: auto;
+    display: flex;
+    margin: 10px;
+    border: 2px solid orangered;
+    border-radius: 50px;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+.linkedin{
+    margin-top: 70px;
+}
+.contact_sumit  span{
+    width: 40%;
+    height: auto;
+    justify-content: center;
+}
+.contact_sumit button{
+    height: 7vh;
+    padding: 7px;
+    border-radius: 140px;
+    border: none;
+}
+.linkedin a button{
+    width: 150px;
+    color: white;
+    background-color: blue;
+}
+.github a button{
+    width: 150px;
+    color: black;
+    background-color: yellow;
+}
+.utube a button{
+    width: 150px;
+    color: azure;
+    background-color: red;
+}
+.gmail  button{
+    color: black;
+    width: 100%;
+    background-color: orangered;
+}
+.mobile  button{
+        color: black;
+        background-color: orangered;
+        width: 100%;
+}
+.cv a, .cv  button{
+    color: black;
+    font-size: 20px;
+    background-color: orangered;
+    width: 90%;
+    border-radius: 140px;
+}
+#contacts_p1{
+  color: orangered;
+  font-size: 20px;
+}
+
+.education_card p, .project_card p, .experience_card p{
+    color: white;
+    font-size: 15px;
+    padding-bottom: 10px;
+}
+
+.education_card h1, .project_card h1, .experience_card h1{
+    color: white;
+    font-size: 15px;
+    padding-bottom: 10px;
+}
+
+/*---------------------education--------------------*/
+.education, .projects, .experience{
+    height: auto;
+    width: 100%;
+    gap: 30px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+}
+.education_card, .project_card, .experience_card{
+    height: auto;
+    width: 350px;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    color: orangered;
+    border: 2px solid orangered;
+    border-radius: 50px;
+    padding: 30px;
+}
+
+/* Skills Section Container */
+.skills {
+  padding: 80px 20px;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Main Card Glassmorphism */
+.skill_card {
+  width: 100%;
+  max-width: 1000px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(15px);
+  border-radius: 30px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Glow Effect inside card */
+.skill_card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* List Styling - Responsive Grid */
+.skills_list ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Individual Skill Items */
+.skills_list li {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px 25px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.6;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Hover Effects - Blue Glow */
+.skills_list li:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+}
+
+/* Category Bolding */
+.skills_list li b, 
+.skills_list li strong {
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .skill_card {
+    padding: 25px;
+    border-radius: 20px;
+  }
+  
+  .skills_list ul {
+    grid-template-columns: 1fr; /* Single column on mobile */
+  }
+
+  .skills_list li {
+    font-size: 0.85rem;
+    padding: 15px;
+  }
+}
+
+/* -------------- Footer ----------------- */
+
+.footer{
+  color: orangered;
+  background-color: black;
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 3px solid orangered;
+  border-bottom: 8px solid orangered;
+  margin-top: 3vh;
+}
+
+.Section_header{
+  color: orangered;
+  background-color: black;
+  height: 10vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 3px solid orangered;
+  border-bottom: 3px solid orangered;
+  margin-bottom: 20px;
+}
+
+
+
+.skills{
+  height: auto;
+  width: 100%;
+  display: flex;
+  background-color: black;
+  color: orangered;
+}
+
+/* 📱 MOBILE */
+@media (max-width: 1024px) {
+
+  .header{
+    position: sticky;
+    z-index: 1000;
+    top: 0;
+  }
+  .hamburger {
+    display: block;
+  }
+
+  .nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: white;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 0;
+    display: none; /* 👈 hidden by default */
+  }
+
+  /* 🔥 THIS IS THE KEY FIX */
+  .nav.active {
+    display: flex;
+  }
+  .name{
+    font-size: 50px;
+  }
+  .tagline{
+    font-size: 15px;
+  }
+
+    
+}
+
+
+@media(width > 480px){
+    .class_grid{
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem 1rem;
+    }
+    .trainer_grid{
+        grid-template-columns: repeat(2, 1fr);
+        align-items: center;
+    }
+    .trainer_card:nth-child(3){
+        grid-area: 2/2/3/3;
+    }
+    .price_grid{
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem 1rem;
+    }
+    .footer_container{
+        grid-template-columns: 2fr 1fr;
+       
+    }
+
+}
+
+@media(width > 780px) {
+
+    #about{
+        height: auto;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+        display: grid;
+    }
+    .about_img{
+        width: 100%;
+        height: 50vh;
+        margin-top: 30px;
+        justify-content: center;
+        align-items: center;
+        display: grid;
+        margin-bottom: 20px;
+    }
+    .about_img img{
+        width: 500px;
+        height: 50vh;
+        margin-top: 30px;
+     }
+    #about_p1{
+        width: 100%;
+        height: 5vh;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+    .myinfo{
+        height: auto;
+        width: 100%;
+        display: flex;
+    }
+    .mi1{
+        height: auto;
+        width: 40%;
+        margin-left: 10%;
+    }
+    .about_sumit{
+        height: 30vh;
+        margin-top: 30px;
+    }
+    .mi2{
+        margin-top: 0;
+    }
+
+
+}
+
+@media(width > 1024px) {
+    #about{
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .about_mainbx{
+        display: flex;
+        flex-wrap: wrap;
+        height: 90vh;
+        width: 100%;
+    }
+    .about_img {
+        width: 40vw;
+        height: 90vh;
+        margin-top: 0;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .about_img img{
+        width: 400px;
+        height: 80vh;
+        margin-left: 40px;
+     }
+    
+    #about_p1{
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+    .about_sumit{
+        width: 600px;
+        height: 70vh;
+        margin-left: 90px;
+        margin-top: 60px;
+    }
+    .myinfo{
+        height: auto;
+        width: 100%;
+
+    }
+    .mi1{
+        height: auto;
+        width: 40%;
+    }
+    .mi2{
+        margin-top: 0;
+    }
+    .contact_sumit{
+        width: 600px;
+        height: auto;
+        margin-left: 50px;
+        margin-top: 0px;
+    }
+
+    .education{
+        height: auto;
+        width: 100%;
+        display: flex;
+        background-color: black;
+    }
+
+    .education_card{
+        width: 450px;
+    }
+}
+
+/* Education Section Layout */
+.education {
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Individual Education Card */
+.education_card {
+  width: 100%;
+  max-width: 850px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 35px;
+  border-radius: 24px;
+  position: relative;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.education_card:hover {
+  background: rgba(59, 130, 246, 0.04);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateX(10px); /* Subtle slide effect */
+}
+
+/* Degree/Course Name */
+.education_card h1:first-of-type {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 5px;
+  letter-spacing: -0.02em;
+}
+
+/* Year & Grade Styling */
+.education_card h1:nth-of-type(2),
+.education_card h1:nth-of-type(3) {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #3b82f6; /* Blue Accent */
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 12px;
+  border-radius: 8px;
+  margin-right: 10px;
+  margin-bottom: 15px;
+}
+
+/* College & University Info */
+.education_card p {
+  font-size: 0.95rem;
+  color: #a1a1aa;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+/* Extra Note/Description */
+.education_card p:last-of-type {
+  margin-top: 15px;
+  font-size: 0.85rem;
+  color: #71717a;
+  font-style: italic;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  padding-left: 15px;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .education_card {
+    padding: 25px;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  
+  .education_card h1:first-of-type {
+    font-size: 1.2rem;
+  }
+}
+
+
