@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* 🔥 Puter.js direct uplink */}
         <script 
           src="https://js.puter.com/v2/" 
+          data-app-id="app-c47a6adf-c207-4978-a180-038223102817"
           data-puter-no-login="true" 
           data-puter-no-desktop="true"
           >
