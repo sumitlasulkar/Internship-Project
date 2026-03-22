@@ -1,6 +1,6 @@
 export default function TermsAndConditionsPage() {
   return (
-    <main style={{ padding: "40px", maxWidth: "900px", margin: "auto", gap: "3px" }}>
+    <main style={{ padding: "40px", maxWidth: "900px", margin: "auto", gap: "3px", color: "black"}}>
       <h1>Terms & Conditions</h1>
       <p><strong>Last updated:</strong> 2026</p>
 

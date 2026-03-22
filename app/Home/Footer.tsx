@@ -21,9 +21,9 @@ export default function Footer() {
         </div>
         <div className= {styles.footer}>
             <p>
-                <a href="/Explore"> Cources | </a>
-                <a href="/Search"> Projects | </a>
-                <a href="/AI">  Guidance </a>
+                <a href="/chatbot"> Resume AI | </a>
+                <a href="/community"> Community | </a>
+                <a href="/guide">  Guidance </a>
             </p>
         </div>
         <div className= {styles.footer}>
