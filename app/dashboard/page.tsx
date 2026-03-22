@@ -269,21 +269,68 @@ export default function Dashboard() {
             <button onClick={() => addItem('projects', { name: "", description: "", techStack: "", note: "", link: "" })} className="w-full py-4 border-2 border-dashed border-zinc-700 rounded-2xl text-zinc-500 hover:text-orange-500 hover:border-orange-500 transition">+ Add Project Card</button>
           </div>
 
-          <div className="bg-zinc-900 p-8 rounded-3xl border border-zinc-800">
-            <h2 className="text-orange-500 font-bold mb-6 text-xs uppercase text-white">Education_Showcase</h2>
-            {(formData.education || []).map((edu, i) => (
-              <div key={i} className="space-y-4 border-b border-zinc-800 pb-6 mb-6">
-                <input placeholder="Education Name" value={edu.name || ""} onChange={(e) => handleArrayChange(i, 'name', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" />
-                <input placeholder="Dates Of Studies" value={edu.year || ""} onChange={(e) => handleArrayChange(i, 'year', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" />
-                <input placeholder="grade" value={edu.grade || ""} onChange={(e) => handleArrayChange(i, 'grade', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" />
-                <input placeholder="Institute Name" value={edu.college || ""} onChange={(e) => handleArrayChange(i, 'college', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" />
-                <input placeholder="University" value={edu.university || ""} onChange={(e) => handleArrayChange(i, 'university', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" />
-                <textarea placeholder="Description" value={edu.note || ""} onChange={(e) => handleArrayChange(i, 'note', e.target.value, 'education')} className="w-full bg-black p-4 rounded-xl border border-zinc-800 h-20 text-white" />
-                <button onClick={() => removeItem('education', i)} className="text-red-500 text-sm">Delete Education</button>
-              </div>
-            ))}
-            <button onClick={() => addItem('education', { name: "", year: "", grade: "", college: "", note: "", university: "" })} className="w-full py-4 border-2 border-dashed border-zinc-700 rounded-2xl text-zinc-500 hover:text-orange-500 hover:border-orange-500 transition">+ Add Education Card</button>
-          </div>
+         <div className="bg-zinc-900 p-8 rounded-3xl border border-zinc-800">
+  <h2 className="text-orange-500 font-bold mb-6 text-xs uppercase text-white">Education_Showcase</h2>
+  
+  {/* Yahan Array.isArray check lagana zaroori hai */}
+  {Array.isArray(formData?.education) ? formData.education.map((edu, i) => (
+    <div key={i} className="space-y-4 border-b border-zinc-800 pb-6 mb-6">
+      <input 
+        placeholder="Education Name" 
+        value={edu.name || ""} 
+        onChange={(e) => handleArrayChange(i, 'name', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" 
+      />
+      <input 
+        placeholder="Dates Of Studies" 
+        value={edu.year || ""} 
+        onChange={(e) => handleArrayChange(i, 'year', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" 
+      />
+      <input 
+        placeholder="grade" 
+        value={edu.grade || ""} 
+        onChange={(e) => handleArrayChange(i, 'grade', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" 
+      />
+      <input 
+        placeholder="Institute Name" 
+        value={edu.college || ""} 
+        onChange={(e) => handleArrayChange(i, 'college', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" 
+      />
+      <input 
+        placeholder="University" 
+        value={edu.university || ""} 
+        onChange={(e) => handleArrayChange(i, 'university', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 text-white" 
+      />
+      <textarea 
+        placeholder="Description" 
+        value={edu.note || ""} 
+        onChange={(e) => handleArrayChange(i, 'note', e.target.value, 'education')} 
+        className="w-full bg-black p-4 rounded-xl border border-zinc-800 h-20 text-white" 
+      />
+      <button 
+        type="button" 
+        onClick={() => removeItem('education', i)} 
+        className="text-red-500 text-sm"
+      >
+        Delete Education
+      </button>
+    </div>
+  )) : (
+    <p className="text-zinc-500 text-sm mb-4 italic">No education profiles initialized.</p>
+  )}
+
+  <button 
+    type="button" 
+    onClick={() => addItem('education', { name: "", year: "", grade: "", college: "", note: "", university: "" })} 
+    className="w-full py-4 border-2 border-dashed border-zinc-700 rounded-2xl text-zinc-500 hover:text-orange-500 hover:border-orange-500 transition"
+  >
+    + Add Education Card
+  </button>
+</div>
 
           <div className="bg-zinc-900 p-8 rounded-3xl border border-zinc-800">
             <h2 className="text-orange-500 font-bold mb-6 text-xs uppercase text-white">Experience_Showcase</h2>
