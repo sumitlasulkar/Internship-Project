@@ -14,8 +14,8 @@ export default function Footer() {
         </div>
         <div className= {styles.footer}>
              <p>
-                <a href="/About"> About | </a>
-                <a href="/About"> Contact | </a>
+                <a href="/about"> About | </a>
+                <a href="/contact"> Contact | </a>
                 <a href="/"> Home </a>
             </p>
         </div>
