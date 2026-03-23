@@ -56,7 +56,6 @@ const NeedsTooltip = ({ active, payload }: any) => {
 export default function AnalyticsPage() {
   const [userData, setUserData] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  
   const [isSimulating, setIsSimulating] = useState(false);
   const [isPredicted, setIsPredicted] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -89,7 +88,7 @@ export default function AnalyticsPage() {
     return () => { unsubscribeAuth(); if (unsubSnapshot) unsubSnapshot(); };
   }, []);
 
-  // 🔴 2. SCORE CALCULATION
+  // 🔴 2. SCORE & LEVELING CALCULATIONS
   const currentSkillsCount = Array.isArray(userData?.skills) ? userData.skills.reduce((acc: number, skill: any) => acc + (skill.items?.split(',').length || 0), 0) : 0;
   const currentProjectsCount = Array.isArray(userData?.projects) ? userData.projects.length : 0;
   const currentExpCount = Array.isArray(userData?.experiences) ? userData.experiences.length : 0;
@@ -97,9 +96,9 @@ export default function AnalyticsPage() {
   const currentScore = (currentSkillsCount * 3) + (currentProjectsCount * 20) + (currentExpCount * 25);
   const projectedAddedScore = (targetSkills * 3) + (targetProjects * 20) + (targetExp * 25);
   const targetTotalScore = currentScore + projectedAddedScore;
-  
   const activeScore = isPredicted ? targetTotalScore : currentScore;
 
+  // Level Info Logic
   const getLevelInfo = (score: number) => {
     if (score < 120) return { level: 'Beginner', next: 'Moderate', target: 120, color: '#f43f5e', progress: (score / 120) * 100 };
     if (score < 220) return { level: 'Moderate', next: 'Pro', target: 220, color: '#06b6d4', progress: ((score - 120) / 100) * 100 };
@@ -115,70 +114,42 @@ export default function AnalyticsPage() {
     { name: 'Skills', value: Math.ceil(pointsToNextLevel / 3), color: '#f97316' },
   ];
 
-  // 🔴 3. 100% REALISTIC DYNAMIC FEATURES 🔴
-  
-  // 1. DYNAMIC Tech Mastery Radar (Fetches real categories from user profile)
+  // 🔴 3. DYNAMIC DATA (Radar, Alignment, Salary)
   const techRadarData = useMemo(() => {
     if (!userData?.skills || userData.skills.length === 0) {
-      // Default empty radar if no skills added yet
-      return [
-        { domain: 'Frontend', score: 0 }, { domain: 'Backend', score: 0 },
-        { domain: 'Database', score: 0 }, { domain: 'Tools', score: 0 }
-      ];
+      return [{ domain: 'Logic', score: 0 }, { domain: 'Apps', score: 0 }, { domain: 'Systems', score: 0 }];
     }
-    
-    // Map through actual Firebase skills
     const mappedSkills = userData.skills.map((skillGroup: any) => {
       const itemsCount = skillGroup.items ? skillGroup.items.split(',').length : 0;
-      // Let's assume 8 skills in one category = 100% mastery for that category
       let score = (itemsCount / 8) * 100;
-      
-      // If predicting, distribute the "targetSkills" boost evenly across existing domains
-      if (isPredicted && targetSkills > 0) {
-        score += (targetSkills / userData.skills.length) * (100 / 8); 
-      }
-      return { 
-        domain: skillGroup.category.length > 10 ? skillGroup.category.substring(0, 10) + '..' : skillGroup.category, 
-        score: Math.min(Math.round(score), 100) 
-      };
+      if (isPredicted && targetSkills > 0) score += (targetSkills / userData.skills.length) * 10; 
+      return { domain: skillGroup.category.substring(0, 10), score: Math.min(Math.round(score), 100) };
     });
-
-    // Radar looks best with 3 to 6 axes.
     return mappedSkills.slice(0, 6);
   }, [userData, isPredicted, targetSkills]);
 
-  // 2. STRICT Silicon Valley Alignment (No fake boosts)
   const alignmentPercent = useMemo(() => {
     let pCount = currentProjectsCount + (isPredicted ? targetProjects : 0);
     let eCount = currentExpCount + (isPredicted ? targetExp : 0);
     let sCount = currentSkillsCount + (isPredicted ? targetSkills : 0);
-
-    // Strict requirements for 100% FAANG match: 5 Projects (40%), 3 Exp (30%), 20 Skills (30%)
     const projMatch = Math.min((pCount / 5) * 40, 40); 
     const expMatch = Math.min((eCount / 3) * 30, 30);  
     const skillMatch = Math.min((sCount / 20) * 30, 30); 
-
     return Math.round(projMatch + expMatch + skillMatch);
   }, [currentProjectsCount, currentExpCount, currentSkillsCount, isPredicted, targetProjects, targetExp, targetSkills]);
 
   const radialData = [{ name: 'Alignment', value: alignmentPercent, fill: isPredicted ? '#8b5cf6' : '#06b6d4' }];
-
-  // 3. REALISTIC Market Value Predictor
-  // 0 score = $0 base. Grows realistically up to $120k+ at max score.
   const estimatedSalary = activeScore === 0 ? 0 : 15000 + (activeScore * 350);
   const formattedSalary = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(estimatedSalary);
 
-  // 4. AI Insights based on real gaps
   const getAIRecommendation = () => {
-    if (alignmentPercent === 0) return "Profile empty. Start by adding your first project and core skills.";
-    if (currentProjectsCount < 2) return "Your portfolio lacks depth. Build and add 2 major full-stack projects.";
-    if (currentExpCount === 0) return "You have projects, but lack certified experience. Hunt for internships or cloud certs.";
-    if (alignmentPercent < 80) return "Solid base. Diversify your tech stack domains to increase market alignment.";
-    return "Top tier profile. Focus on System Architecture and Open Source contributions now.";
+    if (alignmentPercent === 0) return "Add your first project to unlock analysis.";
+    if (currentLevelInfo.level === 'Beginner') return "Build 2 more projects to reach Moderate status.";
+    if (currentLevelInfo.level === 'Moderate') return "Aim for 20+ skills and another certificate to hit Pro level.";
+    return "You are in the top 1%. Focus on architecture and leadership.";
   };
 
-
-  // 🔴 4. AUTO-PILOT & GRAPH LOGIC (UNTOUCHED)
+  // 🔴 4. CORE LOGIC FUNCTIONS
   const handleSetGoal = () => {
     const goal = parseInt(customGoal);
     if (isNaN(goal) || goal <= currentScore) {
@@ -187,51 +158,32 @@ export default function AnalyticsPage() {
       return;
     }
     let gap = goal - currentScore;
-    let exp = Math.floor(gap / 25);
-    if(exp > 5) exp = 5; 
-    gap -= exp * 25;
-
-    let proj = Math.floor(gap / 20);
-    if(proj > 10) proj = 10;
-    gap -= proj * 20;
-
-    let skills = Math.ceil(gap / 3);
-    if(skills > 20) skills = 20;
-
-    setTargetExp(exp);
-    setTargetProjects(proj);
-    setTargetSkills(skills);
-    setCustomGoal('');
-    runSimulation(exp, proj, skills);
+    let exp = Math.min(5, Math.floor(gap / 25)); gap -= exp * 25;
+    let proj = Math.min(10, Math.floor(gap / 20)); gap -= proj * 20;
+    let skills = Math.min(20, Math.ceil(gap / 3));
+    setTargetExp(exp); setTargetProjects(proj); setTargetSkills(skills);
+    setCustomGoal(''); runSimulation(exp, proj, skills);
   };
 
   const generateData = (runSim = false, forcedAddedScore = projectedAddedScore) => {
     const date = new Date();
     const currentMonthIdx = date.getMonth();
     const dataPoints = [];
-    let tempScore = currentScore - 60; 
-    if (tempScore < 0) tempScore = 0;
-    
+    let tempScore = currentScore - 50; 
     for (let i = 5; i > 0; i--) {
       let mIdx = (currentMonthIdx - i + 12) % 12;
-      tempScore += Math.floor(Math.random() * 10) + 5;
-      if (tempScore > currentScore) tempScore = currentScore - 5; // keep past logical
-      dataPoints.push({ month: monthNames[mIdx], actual: tempScore < 0 ? 0 : tempScore, predicted: null });
+      tempScore += Math.floor(Math.random() * 8);
+      dataPoints.push({ month: monthNames[mIdx], actual: Math.min(tempScore, currentScore - 5), predicted: null });
     }
-    
     dataPoints.push({ month: monthNames[currentMonthIdx], actual: currentScore, predicted: currentScore });
-
     const addedScore = runSim ? forcedAddedScore : 0;
-    const finalTarget = currentScore + addedScore;
     const growthPerMonth = addedScore / timeframe;
     let simScore = currentScore;
-
     for (let i = 1; i <= timeframe; i++) {
       let mIdx = (currentMonthIdx + i) % 12;
       simScore += growthPerMonth;
-      let noise = runSim ? (Math.random() * 10) - 5 : 0; 
       dataPoints.push({ 
-        month: monthNames[mIdx], actual: null, predicted: i === timeframe ? finalTarget : Math.round(simScore + noise) 
+        month: monthNames[mIdx], actual: null, predicted: Math.round(simScore + (runSim ? (Math.random() * 6 - 3) : 0)) 
       });
     }
     return dataPoints;
@@ -246,44 +198,44 @@ export default function AnalyticsPage() {
 
   const runSimulation = (exp=targetExp, proj=targetProjects, skills=targetSkills) => {
     setIsSimulating(true);
-    const specificAddedScore = (skills * 3) + (proj * 20) + (exp * 25);
+    const score = (skills * 3) + (proj * 20) + (exp * 25);
     setTimeout(() => {
-      setChartData(generateData(true, specificAddedScore));
+      setChartData(generateData(true, score));
       setIsPredicted(true);
       setIsSimulating(false);
     }, 2000); 
   };
 
-  // Renders
-  if (isAuthLoading) return (<div className="min-h-screen bg-[#000000] flex items-center justify-center"><div className="w-12 h-12 border-t-2 border-cyan-500 rounded-full animate-spin shadow-[0_0_20px_rgba(6,182,212,0.5)]" /></div>);
-  if (!userData) return (<div className="min-h-screen bg-[#000000] text-zinc-100 flex flex-col items-center justify-center p-4 text-center"><Database size={48} className="text-zinc-700 mb-6" /><h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2><Link href="/"><button className="mt-8 bg-cyan-500 text-black px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs">Return to Home</button></Link></div>);
+  // UI Renders
+  if (isAuthLoading) return (<div className="min-h-screen bg-[#000] flex items-center justify-center"><div className="w-12 h-12 border-t-2 border-cyan-500 rounded-full animate-spin shadow-[0_0_20px_#06b6d4]" /></div>);
+  if (!userData) return (<div className="min-h-screen bg-[#000] flex flex-col items-center justify-center p-4 text-center"><Database size={48} className="text-zinc-800 mb-6" /><h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2><Link href="/"><button className="mt-8 bg-cyan-500 text-black px-8 py-3 rounded-xl font-bold uppercase text-xs tracking-widest">Return Home</button></Link></div>);
 
   return (
     <div className="min-h-screen bg-[#000000] text-zinc-100 font-sans selection:bg-cyan-500/30 p-4 md:p-10 relative overflow-x-hidden flex flex-col items-center">
       
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_80%,transparent_100%)]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
         <motion.div animate={{ opacity: [0.03, 0.08, 0.03] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-[10%] left-[10%] w-[50vw] h-[50vw] bg-cyan-600/20 blur-[150px] rounded-full" />
-        <motion.div animate={{ opacity: [0.02, 0.06, 0.02] }} transition={{ duration: 12, repeat: Infinity, delay: 2 }} className="absolute bottom-[10%] right-[10%] w-[50vw] h-[50vw] bg-indigo-600/20 blur-[150px] rounded-full" />
       </div>
 
       <div className="w-full max-w-7xl relative z-10">
         <Link href="/">
           <motion.div whileHover={{ x: -5 }} className="inline-flex items-center gap-2 text-zinc-500 hover:text-cyan-400 font-bold text-[10px] uppercase tracking-widest mb-10 transition-colors cursor-pointer bg-white/[0.02] px-4 py-2.5 rounded-xl border border-white/[0.05]">
-            <ArrowLeft size={14} /> System Override / Back
+            <ArrowLeft size={14} /> Back to Main Terminal
           </motion.div>
         </Link>
 
-        {/* Dashboard Header */}
+        {/* Dashboard Header & SCORE METER */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div>
              <h1 className="text-4xl md:text-5xl font-medium text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight mb-3">Hyper-Predictive Analytics.</h1>
-             <p className="text-zinc-400 text-sm max-w-xl leading-relaxed">Simulate future career trajectories based on algorithmic estimations of your live database projects, skills, and experience acquisitions.</p>
+             <p className="text-zinc-400 text-sm max-w-xl leading-relaxed">Algorithmic estimations of your career trajectories based on live profile metrics.</p>
            </div>
            
            <div className="flex gap-4">
-              <div className="bg-[#050505] border border-white/[0.05] px-6 py-4 rounded-2xl flex flex-col shadow-xl min-w-[200px] relative overflow-hidden group">
+              {/* CURRENT SCORE & PROGRESS METER */}
+              <div className="bg-[#050505] border border-white/[0.05] px-6 py-4 rounded-2xl flex flex-col shadow-xl min-w-[210px]">
                  <div className="flex justify-between items-center mb-1">
                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1.5"><Database size={12} className="text-cyan-500"/> Live Score</span>
                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ color: currentLevelInfo.color, backgroundColor: `${currentLevelInfo.color}15`, border: `1px solid ${currentLevelInfo.color}30` }}>
@@ -291,17 +243,21 @@ export default function AnalyticsPage() {
                    </span>
                  </div>
                  <div className="flex items-baseline gap-1 mt-1">
-                   <motion.span key={currentScore} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-3xl font-black text-white">{currentScore}</motion.span>
+                   <motion.span key={currentScore} className="text-3xl font-black text-white">{currentScore}</motion.span>
                    <span className="text-xs font-bold text-zinc-600">/ 300</span>
                  </div>
+                 {/* Segmented Meter Bar */}
                  <div className="w-full h-1.5 bg-zinc-900 rounded-full mt-3 overflow-hidden flex gap-0.5">
                    <motion.div className="h-full bg-rose-500" animate={{ width: currentScore >= 120 ? '100%' : `${currentLevelInfo.progress}%` }} transition={{ duration: 1 }} style={{ opacity: currentScore > 0 ? 1 : 0.2 }} />
                    <motion.div className="h-full bg-cyan-500" animate={{ width: currentScore >= 220 ? '100%' : (currentScore > 120 ? `${currentLevelInfo.progress}%` : '0%') }} transition={{ duration: 1, delay: 0.2 }} style={{ opacity: currentScore > 120 ? 1 : 0.2 }} />
                    <motion.div className="h-full bg-emerald-400" animate={{ width: currentScore >= 300 ? '100%' : (currentScore > 220 ? `${currentLevelInfo.progress}%` : '0%') }} transition={{ duration: 1, delay: 0.4 }} style={{ opacity: currentScore > 220 ? 1 : 0.2 }} />
                  </div>
+                 <div className="flex justify-between mt-1 text-[7px] text-zinc-700 font-bold uppercase">
+                    <span>Beg</span><span>Mod</span><span>Pro</span>
+                 </div>
               </div>
 
-              <div className={`border px-6 py-4 rounded-2xl flex flex-col justify-center transition-all duration-500 ${isPredicted ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-white/[0.02] border-white/[0.05]'}`}>
+              <div className={`border px-6 py-4 rounded-2xl flex flex-col justify-center transition-all duration-500 ${isPredicted ? 'bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-white/[0.02] border-white/[0.05]'}`}>
                  <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5 ${isPredicted ? 'text-indigo-400' : 'text-zinc-500'}`}><Zap size={12}/> Target Potential</span>
                  <motion.span key={targetTotalScore} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className={`text-3xl font-black ${isPredicted ? 'text-indigo-400' : 'text-zinc-500'}`}>{isPredicted ? targetTotalScore : '--'} <span className="text-sm opacity-50">pts</span></motion.span>
               </div>
@@ -310,24 +266,13 @@ export default function AnalyticsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* --- LEFT COLUMN: MAIN GRAPHS --- */}
+          {/* --- LEFT COLUMN --- */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             
             {/* 1. Main Growth Curve */}
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={springConfig} className="bg-[#050505] border border-white/[0.05] rounded-[2rem] p-6 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col">
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#0A0A0A] border border-white/[0.05] flex items-center justify-center shadow-inner">
-                    <BarChart3 size={18} className="text-cyan-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white text-base font-bold tracking-tight">Growth Forecast Curve</h3>
-                    <p className="text-zinc-500 text-[10px] mt-0.5 font-medium uppercase tracking-wider">Trajectory mapped over {timeframe} months</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full flex-1 min-h-[250px] relative z-10">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={springConfig} className="bg-[#050505] border border-white/[0.05] rounded-[2rem] p-6 relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+              <div className="flex items-center gap-3 mb-4"><BarChart3 size={18} className="text-cyan-400" /><h3 className="text-white text-base font-bold">Growth Curve ({timeframe}m)</h3></div>
+              <div className="w-full flex-1 min-h-[250px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -335,144 +280,120 @@ export default function AnalyticsPage() {
                       <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.6}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                    <XAxis dataKey="month" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} dy={10} fontWeight={600} />
-                    <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} fontWeight={600} />
+                    <XAxis dataKey="month" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '5 5' }} />
-                    <Area type="monotone" dataKey="actual" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" activeDot={{ r: 6, fill: "#06b6d4", stroke: "#000", strokeWidth: 2 }} />
-                    <Area type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={3} strokeDasharray="6 6" fillOpacity={1} fill="url(#colorPredicted)" activeDot={{ r: 6, fill: "#8b5cf6", stroke: "#000", strokeWidth: 2 }} animationDuration={1500} />
+                    <Area type="monotone" dataKey="actual" stroke="#06b6d4" strokeWidth={3} fill="url(#colorActual)" activeDot={{ r: 6, fill: "#06b6d4", stroke: "#000", strokeWidth: 2 }} />
+                    <Area type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={3} strokeDasharray="6 6" fill="url(#colorPredicted)" activeDot={{ r: 6, fill: "#8b5cf6", stroke: "#000", strokeWidth: 2 }} animationDuration={1500} />
                     <ReferenceLine x={monthNames[new Date().getMonth()]} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                   </AreaChart>
                 </ResponsiveContainer>
-
-                <AnimatePresence>
-                  {isSimulating && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-2xl overflow-hidden">
-                      <motion.div animate={{ top: ['-10%', '110%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="absolute left-0 right-0 h-1 bg-indigo-500 shadow-[0_0_20px_#6366f1,0_0_40px_#6366f1]" />
-                      <Scan size={40} className="text-indigo-400 mb-4 animate-pulse" />
-                      <span className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Compiling Neural Forecast...</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <AnimatePresence>{isSimulating && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#050505]/90 flex flex-col items-center justify-center z-20 rounded-2xl"><motion.div animate={{ top: ['-10%', '110%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="absolute left-0 right-0 h-1 bg-indigo-500 shadow-[0_0_20px_#6366f1]" /><Scan size={40} className="text-indigo-400 mb-4 animate-pulse" /><span className="text-indigo-400 text-[10px] font-black tracking-[0.4em] animate-pulse">Compiling Neural Forecast...</span></motion.div>)}</AnimatePresence>
               </div>
             </motion.div>
 
-            {/* NEW ROW: Tech Mastery & Market Value */}
+            {/* 🔴 PATH TO UPGRADE GRAPH 🔴 */}
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg">
+              <div className="flex justify-between items-center mb-6">
+                 <div>
+                    <h3 className="text-white text-sm font-bold flex items-center gap-2"><Target size={16} className="text-rose-500"/> Path to {currentLevelInfo.next}</h3>
+                    <p className="text-zinc-500 text-[10px] mt-1 font-medium uppercase tracking-wider">Gap to close: {pointsToNextLevel} Points</p>
+                 </div>
+                 {currentLevelInfo.level === 'Pro' ? <Trophy size={20} className="text-emerald-400" /> : <span className="text-[10px] bg-white/[0.05] border border-white/10 px-3 py-1.5 rounded-lg text-zinc-300 font-mono">Gap: <b className="text-white">{pointsToNextLevel}</b> pts</span>}
+              </div>
+              <div className="w-full h-[140px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={requirementsData} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
+                    <BarXAxis type="number" hide />
+                    <BarYAxis dataKey="name" type="category" axisLine={false} tickLine={false} stroke="#a1a1aa" fontSize={10} width={80} />
+                    <BarTooltip content={<NeedsTooltip />} cursor={{fill: 'rgba(255,255,255,0.02)'}} />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
+                      {requirementsData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            {/* Radar & Alignment Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* 🔴 STRICT DYNAMIC RADAR 🔴 */}
-              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{...springConfig, delay: 0.1}} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col">
-                 <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-2"><RadarIcon size={16} className={isPredicted ? "text-indigo-400" : "text-cyan-400"}/> Domain Mastery</h3>
-                 <p className="text-zinc-500 text-[10px] mb-4 uppercase tracking-widest font-bold">Based on live profile skills</p>
+              <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg">
+                 <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-4"><RadarIcon size={16} className="text-cyan-400"/> Tech Radar</h3>
                  <div className="w-full h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      {techRadarData.length > 0 ? (
-                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={techRadarData}>
-                          <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                          <PolarAngleAxis dataKey="domain" tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: 600 }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                          <Radar name="Mastery" dataKey="score" stroke={isPredicted ? "#8b5cf6" : "#06b6d4"} strokeWidth={2} fill={isPredicted ? "#8b5cf6" : "#06b6d4"} fillOpacity={0.4} />
-                        </RadarChart>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No skills data available</div>
-                      )}
+                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={techRadarData}>
+                        <PolarGrid stroke="rgba(255,255,255,0.05)" /><PolarAngleAxis dataKey="domain" tick={{ fill: '#a1a1aa', fontSize: 9 }} />
+                        <Radar dataKey="score" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.4} />
+                      </RadarChart>
                     </ResponsiveContainer>
                  </div>
-              </motion.div>
-
-              {/* 🔴 STRICT ALIGNMENT & SALARY 🔴 */}
-              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col justify-between">
-                
-                <div>
-                  <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-2"><Compass size={16} className={isPredicted ? "text-indigo-400" : "text-cyan-400"}/> Silicon Valley Alignment</h3>
-                  <p className="text-zinc-500 text-[10px] mb-2 uppercase tracking-widest font-bold">Strict FAANG criteria match</p>
-                  
-                  <div className="flex items-center gap-4 h-[100px]">
-                    <div className="w-[100px] h-[100px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={8} data={radialData} startAngle={90} endAngle={-270}>
-                          <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                          <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} dataKey="value" cornerRadius={10} />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div>
-                      <motion.span key={alignmentPercent} initial={{ scale: 0.5 }} animate={{ scale: 1 }} className={`text-4xl font-black ${isPredicted ? 'text-indigo-400' : 'text-cyan-400'}`}>{alignmentPercent}%</motion.span>
-                      <p className="text-zinc-400 text-xs font-medium">Industry Match</p>
-                    </div>
+              </div>
+              <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col justify-between">
+                <div><h3 className="text-white text-sm font-bold flex items-center gap-2 mb-4"><Compass size={16} className="text-cyan-400"/> Alignment</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="w-[100px] h-[100px]"><ResponsiveContainer><RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" data={radialData} startAngle={90} endAngle={-270}><RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} dataKey="value" cornerRadius={10} /></RadialBarChart></ResponsiveContainer></div>
+                    <span className="text-4xl font-black">{alignmentPercent}%</span>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-white/[0.05]">
-                  <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-1"><CircleDollarSign size={14} className="text-emerald-400"/> Est. Market Value</h3>
-                  <motion.p key={formattedSalary} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-black text-emerald-400">{formattedSalary} <span className="text-[10px] text-zinc-500 uppercase">/ year</span></motion.p>
-                </div>
-              </motion.div>
-
+                <div className="mt-4 pt-4 border-t border-white/[0.05]"><h3 className="text-white text-sm font-bold flex items-center gap-2 mb-1"><CircleDollarSign size={14} className="text-emerald-400"/> Est. Salary</h3><p className="text-2xl font-black text-emerald-400">{formattedSalary}</p></div>
+              </div>
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: CONTROLS --- */}
+          {/* --- RIGHT COLUMN (Controls) --- */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-            
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={springConfig} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 relative shadow-2xl flex flex-col">
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={springConfig} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-2xl flex flex-col">
               
+              {/* Auto-Pilot Goal Setter */}
               <div className="mb-6 pb-6 border-b border-white/[0.05]">
-                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-3">
-                  <Crosshair size={14} className="text-rose-500" /> Auto-Pilot Goal
-                </h3>
-                <div className={`flex items-center gap-2 p-1.5 rounded-xl border transition-all ${goalError ? 'border-red-500 bg-red-500/10' : 'bg-[#050505] border-white/[0.1] focus-within:border-indigo-500'}`}>
-                  <input 
-                    type="number" value={customGoal} onChange={(e) => setCustomGoal(e.target.value)} placeholder={`Target > ${currentScore}`}
-                    className="w-full bg-transparent border-none outline-none text-white text-xs px-2 font-mono placeholder:text-zinc-600"
-                  />
-                  <button onClick={handleSetGoal} className="bg-white text-black px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-indigo-400 transition-colors shrink-0">Set</button>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-3"><Crosshair size={14} className="text-rose-500" /> Auto-Pilot</h3>
+                <div className={`flex items-center gap-2 p-1.5 rounded-xl border ${goalError ? 'border-red-500 bg-red-500/10' : 'bg-[#050505] border-white/[0.1] focus-within:border-indigo-500'}`}>
+                  <input type="number" value={customGoal} onChange={(e) => setCustomGoal(e.target.value)} placeholder={`Target > ${currentScore}`} className="w-full bg-transparent outline-none text-white text-xs px-2 font-mono placeholder:text-zinc-600" />
+                  <button onClick={handleSetGoal} className="bg-white text-black px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-400 transition-colors shrink-0">Set</button>
                 </div>
               </div>
 
-              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-5">
-                <SlidersHorizontal size={14} className="text-indigo-400" /> Manual Builder
-              </h3>
-
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-5"><SlidersHorizontal size={14} className="text-indigo-400" /> Scenario Builder</h3>
               <div className="space-y-6 flex-1">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Code size={10} className="inline mr-1"/> Target Skills</label><motion.span key={targetSkills} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetSkills}</motion.span></div>
-                  <input type="range" min="0" max="20" value={targetSkills} onChange={(e) => { setTargetSkills(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Skills (+3)</label><span className="text-white text-[10px] font-mono">{targetSkills}</span></div>
+                  <input type="range" min="0" max="20" value={targetSkills} onChange={(e) => { setTargetSkills(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Briefcase size={10} className="inline mr-1"/> Target Projects</label><motion.span key={targetProjects} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetProjects}</motion.span></div>
-                  <input type="range" min="0" max="10" value={targetProjects} onChange={(e) => { setTargetProjects(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Projects (+20)</label><span className="text-white text-[10px] font-mono">{targetProjects}</span></div>
+                  <input type="range" min="0" max="10" value={targetProjects} onChange={(e) => { setTargetProjects(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><GraduationCap size={10} className="inline mr-1"/> Target Exp/Certs</label><motion.span key={targetExp} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetExp}</motion.span></div>
-                  <input type="range" min="0" max="5" value={targetExp} onChange={(e) => { setTargetExp(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Exp/Certs (+25)</label><span className="text-white text-[10px] font-mono">{targetExp}</span></div>
+                  <input type="range" min="0" max="5" value={targetExp} onChange={(e) => { setTargetExp(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer" />
+                </div>
+
+                {/* 🔴 TIMEFRAME SELECTOR RE-ADDED 🔴 */}
+                <div className="space-y-3 pt-4 border-t border-white/[0.05]">
+                  <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Simulation Timeframe</label>
+                  <div className="flex gap-2 bg-[#050505] p-1 rounded-xl border border-white/5">
+                    {[3, 6, 12].map(m => (
+                      <button key={m} onClick={() => { setTimeframe(m); setIsPredicted(false); }} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${timeframe === m ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-600 hover:text-zinc-300'}`}>{m}m</button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => runSimulation()} disabled={isSimulating} className="w-full mt-6 bg-gradient-to-r from-cyan-600 to-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-[0_10px_20px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_30px_rgba(99,102,241,0.5)] disabled:opacity-50">
-                <BrainCircuit size={14} /> Execute Sim
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => runSimulation()} disabled={isSimulating} className="w-full mt-8 bg-gradient-to-r from-cyan-600 to-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase text-white shadow-xl hover:shadow-indigo-500/20 disabled:opacity-50">
+                <BrainCircuit size={14} className="inline mr-2" /> Execute Simulation
               </motion.button>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-gradient-to-br from-indigo-900/20 to-black border border-indigo-500/20 rounded-[2rem] p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)]">
-               <h3 className="text-indigo-400 text-sm font-bold flex items-center gap-2 mb-3"><BotMessageSquare size={16} /> AI Next Best Action</h3>
-               <p className="text-zinc-300 text-xs leading-relaxed italic border-l-2 border-indigo-500 pl-3">
-                 "{getAIRecommendation()}"
-               </p>
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-gradient-to-br from-indigo-900/20 to-black border border-indigo-500/20 rounded-[2rem] p-6 shadow-xl">
+               <h3 className="text-indigo-400 text-sm font-bold flex items-center gap-2 mb-3"><BotMessageSquare size={16} /> AI Advice</h3>
+               <p className="text-zinc-300 text-xs italic border-l-2 border-indigo-500 pl-3">"{getAIRecommendation()}"</p>
             </motion.div>
-
           </div>
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          height: 12px; width: 12px;
-          border-radius: 50%;
-          background: #06b6d4;
-          cursor: pointer;
-          box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
-        }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #06b6d4; cursor: pointer; box-shadow: 0 0 10px #06b6d4; }
       `}} />
     </div>
   );
