@@ -164,7 +164,7 @@ export default function Dashboard() {
                 ✨ ATS OPTIMIZER
               </button>
               <button onClick={() => handlePrint()} className="flex-1 md:flex-none bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:text-white px-5 py-3 rounded-xl text-xs md:text-sm font-bold hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all duration-300">
-                📄 EXPORT PDF
+                📄 EXPORT RESUME
               </button>
               <button onClick={handleSave} className="flex-[1.5] md:flex-none bg-gradient-to-r from-fuchsia-600 to-violet-600 px-8 py-3 rounded-xl text-xs md:text-sm font-bold hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(217,70,239,0.3)] hover:shadow-[0_0_40px_rgba(217,70,239,0.5)] text-white border border-white/20">
                 SAVE CHANGES
