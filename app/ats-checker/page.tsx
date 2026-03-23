@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore'; // 🔥 Changed getDoc to onSnapshot
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion'; 
 import { Zap, Shield, Target, Cpu, Search, Activity, LayoutGrid, BarChart3, AlertTriangle, CheckCircle2, FileText, Crosshair, TrendingUp } from 'lucide-react';
@@ -63,13 +63,27 @@ export default function ATSCheckerPage() {
 
   useEffect(() => {
     setMounted(true);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubSnapshot: any;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const docSnap = await getDoc(doc(db, "portfolios", user.uid));
-        if (docSnap.exists()) setUserData(docSnap.data());
+        // 🔥 REAL-TIME DATABASE SYNC (No more lag!)
+        unsubSnapshot = onSnapshot(doc(db, "portfolios", user.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            setUserData({}); 
+          }
+        });
+      } else {
+        setUserData(null);
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
   }, []);
 
   const result = analyzeATS(userData, jobDesc.trim()); 
@@ -303,7 +317,6 @@ export default function ATSCheckerPage() {
               ) : (
                 <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full bg-white/[0.02] rounded-3xl border border-white/[0.05] p-8 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center">
                   
-                  {/* --- NEW HEALTH GAUGE --- */}
                   <div className="w-full mb-10">
                     <h3 className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 mb-4">
                       <TrendingUp className="w-4 h-4 text-violet-400" /> Overall Profile Readiness

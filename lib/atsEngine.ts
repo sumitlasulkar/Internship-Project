@@ -5,8 +5,11 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   const missing: string[] = [];
   const heatmap: any[] = [];
 
-  // If no user data is loaded yet, return 0
-  if (!userData) return { gScore, mScore, suggestions, missing, heatmap };
+  // Guard against null or empty object (Prevents crashes)
+  if (!userData || Object.keys(userData).length === 0) return { gScore, mScore, suggestions, missing, heatmap };
+
+  // Helper to safely check and clean strings from the database
+  const isValidStr = (val: any, minLen: number) => typeof val === 'string' && val.trim().length > minLen;
 
   // ==========================================
   // 1. 100% DYNAMIC BASE HEALTH LOGIC (gScore)
@@ -14,10 +17,10 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   
   // A. Contact & Basic Info (Max 10 Points)
   let contactScore = 0;
-  if (userData.name && userData.name.trim().length > 2) contactScore += 2.5;
-  if (userData.gmail && userData.gmail.trim().length > 5) contactScore += 2.5;
-  if (userData.linkedin && userData.linkedin.trim().length > 5) contactScore += 2.5;
-  if (userData.github && userData.github.trim().length > 5) contactScore += 2.5;
+  if (isValidStr(userData.name, 2)) contactScore += 2.5;
+  if (isValidStr(userData.gmail, 5)) contactScore += 2.5;
+  if (isValidStr(userData.linkedin, 5)) contactScore += 2.5;
+  if (isValidStr(userData.github, 5)) contactScore += 2.5;
   gScore += contactScore;
 
   if (contactScore < 10) {
@@ -25,9 +28,8 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   }
 
   // B. Education (Max 15 Points)
-  // Filter out empty templates
-  const validEdu = userData.education?.filter((ed: any) => ed.name && ed.name.trim().length > 2) || [];
-  let eduScore = Math.min(validEdu.length * 15, 15); // Max 15 points if they have at least 1 education
+  const validEdu = Array.isArray(userData.education) ? userData.education.filter((ed: any) => isValidStr(ed?.name, 2)) : [];
+  let eduScore = Math.min(validEdu.length * 15, 15); 
   gScore += eduScore;
 
   if (eduScore === 0) {
@@ -35,14 +37,14 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   }
 
   // C. Skills Density (Max 30 Points -> 2 points per skill)
-  const skillsArr = userData.skills?.flatMap((s: any) => 
-    (s.items || '').split(',')
+  const skillsArr = Array.isArray(userData.skills) ? userData.skills.flatMap((s: any) => 
+    (typeof s?.items === 'string' ? s.items : '').split(',')
       .map((i: string) => i.trim().toLowerCase())
-      .filter((i: string) => i.length > 1) // Ignore empty spaces
-  ) || [];
+      .filter((i: string) => i.length > 1) 
+  ) : [];
   
   const validSkillsCount = skillsArr.length;
-  let skillScore = Math.min(validSkillsCount * 2, 30); // 15 skills * 2 pts = 30 max
+  let skillScore = Math.min(validSkillsCount * 2, 30); 
   gScore += skillScore;
 
   if (validSkillsCount < 15) {
@@ -50,7 +52,7 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   }
 
   // D. Projects (Max 25 Points -> 12.5 points per project)
-  const validProjects = userData.projects?.filter((p: any) => p.name && p.name.trim().length > 2) || [];
+  const validProjects = Array.isArray(userData.projects) ? userData.projects.filter((p: any) => isValidStr(p?.name, 2)) : [];
   let projScore = Math.min(validProjects.length * 12.5, 25); 
   gScore += projScore;
 
@@ -59,7 +61,7 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   }
 
   // E. Experience (Max 20 Points -> 10 points per experience)
-  const validExp = userData.experiences?.filter((e: any) => e.name && e.name.trim().length > 2) || [];
+  const validExp = Array.isArray(userData.experiences) ? userData.experiences.filter((e: any) => isValidStr(e?.name, 2)) : [];
   let expScore = Math.min(validExp.length * 10, 20);
   gScore += expScore;
 
@@ -67,7 +69,6 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
     suggestions.push("Experience: Add at least 1-2 professional roles or internships to hit a 100% score.");
   }
 
-  // Round final gScore so UI gets clean numbers (e.g., 87% instead of 87.5%)
   gScore = Math.round(gScore);
   if (gScore > 100) gScore = 100;
 
@@ -76,7 +77,6 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   // ==========================================
   if (jobDesc && jobDesc.trim().length > 10) {
     
-    // Corporate fluff words to ignore
     const stopWords = new Set([
       'and', 'the', 'is', 'are', 'with', 'this', 'that', 'from', 'your', 'skills', 'experience', 
       'using', 'working', 'work', 'team', 'ability', 'strong', 'knowledge', 'excellent', 'good', 
@@ -109,15 +109,11 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
        }
     });
 
-    // Sort keywords by frequency
     const sortedKeywords = Object.keys(wordCounts).sort((a, b) => wordCounts[b] - wordCounts[a]);
-    
-    // Benchmark against Top 25 keywords
     const targetKeywords = sortedKeywords.slice(0, 25);
     const matchedKeywords: string[] = [];
     const missingKeywords: string[] = [];
 
-    // Exact word boundary check
     targetKeywords.forEach(kw => {
         if (resumeCleaned.includes(` ${kw} `)) {
             matchedKeywords.push(kw);
@@ -126,12 +122,9 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
         }
     });
 
-    // Calculate Match Score
     mScore = targetKeywords.length > 0 ? Math.round((matchedKeywords.length / targetKeywords.length) * 100) : 0;
-    
     missing.push(...missingKeywords.slice(0, 15));
 
-    // 📊 Real-time Heatmap Data
     targetKeywords.slice(0, 12).forEach(word => {
         heatmap.push({
             word: word,
