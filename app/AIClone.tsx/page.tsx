@@ -187,13 +187,17 @@ export default function AIClone({ userName = "this developer" }: { userName?: st
         <div style={{ position: 'absolute', inset: '-5px', border: '1px solid rgba(249, 115, 22, 0.5)', borderRadius: '50%', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }} />
         {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
       </motion.button>
-
-      <style jsx>{`
-        @keyframes ping {
-          75%, 100% { transform: scale(1.5); opacity: 0; }
-        }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-      `}</style>
+<style dangerouslySetInnerHTML={{ __html: `
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px; width: 16px;
+    border-radius: 50%;
+    background: #06b6d4;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+  }
+      `}}>
+      </style>
     </div>
   );
 }

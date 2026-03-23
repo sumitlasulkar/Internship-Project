@@ -72,7 +72,7 @@ export default function Header() {
         <Link href="/opportunities" className={style.button} onClick={() => setMenuOpen(false)}> 🚀 Grow </Link>
         <Link href="/community" className={style.button} onClick={() => setMenuOpen(false)}> 🌐community </Link>
         <Link href="/chatbot" className={style.button} onClick={() => setMenuOpen(false)}> 🤖 Resume AI </Link>
-        <Link href="/about" className={style.button} onClick={() => setMenuOpen(false)}> About Us </Link>
+        <Link href="/analytics" className={style.button} onClick={() => setMenuOpen(false)}> Analytics </Link>
         <Link href="/contact" className={style.button} onClick={() => setMenuOpen(false)}> Contact Us </Link>
       </nav>
     </header>
