@@ -1,418 +1,367 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { db, auth } from '@/lib/firebase';
-import { 
-  collection, addDoc, query, orderBy, onSnapshot, 
-  serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc 
-} from 'firebase/firestore';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Send, MessageSquare, ThumbsUp, UserCircle, Activity, HelpCircle, Flame, ExternalLink, ShieldCheck, Sparkles, Trash2, Folders, Layers, Zap, Orbit, ArrowRight } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { motion, AnimatePresence } from 'framer-motion'; 
+import { Zap, Shield, Target, Cpu, Search, Activity, LayoutGrid, BarChart3, AlertTriangle, CheckCircle2, FileText, Crosshair } from 'lucide-react';
 import Header from '../Home/header';
-import { useRouter } from 'next/navigation';
 import Footer from '../Home/Footer';
+import { analyzeATS } from '@/lib/atsEngine';
 
-export default function CommunityPage() {
-  const [hasMounted, setHasMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'feed' | 'queries'>('feed');
-  const [isFilterMyPosts, setIsFilterMyPosts] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
-  const [newInput, setNewInput] = useState("");
-  const [user, setUser] = useState<any>(null);
-  const [openItem, setOpenItem] = useState<string | null>(null); 
-  const [replyText, setReplyText] = useState("");
-  const [subItems, setSubItems] = useState<any[]>([]); 
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const router = useRouter();
+// --- ANIMATED CIRCULAR GRAPH COMPONENT ---
+const CircularProgress = ({ value, title, subtitle, colorClass, shadowClass, gradientId, fromColor, toColor }: any) => {
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
 
-  const springConfig = { type: "spring" as const, stiffness: 400, damping: 30 };
-  const smoothHover = { scale: 1.02, transition: { type: "spring" as const, stiffness: 400, damping: 25 } };
-
-  // --------------------------------------------------------
-  // BACKEND LOGIC - 100% UNTOUCHED
-  // --------------------------------------------------------
-  useEffect(() => {
-    setHasMounted(true);
-    const unsubAuth = auth.onAuthStateChanged((u) => {
-      setUser(u);
-      setIsAuthLoading(false);
-    });
-    return () => unsubAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!hasMounted || !user) return;
-    const colName = activeTab === 'feed' ? 'posts' : 'queries';
-    const q = query(collection(db, colName), orderBy('timestamp', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubscribe();
-  }, [activeTab, hasMounted, user]);
-
-  useEffect(() => {
-    if (!openItem || !user || !hasMounted) { setSubItems([]); return; }
-    const subColName = activeTab === 'feed' ? 'comments' : 'replies';
-    const parentCol = activeTab === 'feed' ? 'posts' : 'queries';
-    const subQ = query(collection(db, parentCol, openItem, subColName), orderBy('timestamp', 'asc'));
-    const unsubSub = onSnapshot(subQ, (snapshot) => {
-      setSubItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubSub();
-  }, [openItem, activeTab, user, hasMounted]);
-
-  const displayedItems = isFilterMyPosts 
-    ? items.filter(item => item.authorId === user?.uid) 
-    : items;
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm("Confirm deletion of this node?")) return;
-    await deleteDoc(doc(db, activeTab === 'feed' ? 'posts' : 'queries', itemId));
-  };
-
-  const handleDeleteSubItem = async (itemId: string, subId: string) => {
-    const subColName = activeTab === 'feed' ? 'comments' : 'replies';
-    await deleteDoc(doc(db, activeTab === 'feed' ? 'posts' : 'queries', itemId, subColName, subId));
-  };
-
-  const handleMainPost = async () => {
-    if (!newInput.trim() || !user) return;
-    const colName = activeTab === 'feed' ? 'posts' : 'queries';
-    await addDoc(collection(db, colName), {
-      content: newInput,
-      authorId: user.uid,
-      authorName: user.displayName || "Anonymous",
-      timestamp: serverTimestamp(),
-      likes: []
-    });
-    setNewInput("");
-  };
-
-  const handleLike = async (itemId: string, currentLikes: any) => {
-    if (!user) return;
-    const likes = Array.isArray(currentLikes) ? currentLikes : [];
-    const isLiked = likes.includes(user.uid);
-    const itemRef = doc(db, activeTab === 'feed' ? 'posts' : 'queries', itemId);
-    await updateDoc(itemRef, { likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
-  };
-
-  const handleSubPost = async (itemId: string) => {
-    if (!replyText.trim() || !user) return;
-    const subColName = activeTab === 'feed' ? 'comments' : 'replies';
-    await addDoc(collection(db, activeTab === 'feed' ? 'posts' : 'queries', itemId, subColName), {
-      text: replyText,
-      authorName: user.displayName || "Anonymous",
-      authorId: user.uid,
-      timestamp: serverTimestamp()
-    });
-    setReplyText("");
-  };
-
-  if (!hasMounted) return null;
-  if (isAuthLoading) return (
-    <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-8 relative">
-        <div className="absolute inset-0 bg-cyan-500/20 blur-[50px] rounded-full animate-pulse" />
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }} className="w-16 h-16 border-y-2 border-cyan-400 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.5)] relative z-10" />
-        <span className="text-cyan-400 font-black tracking-[0.4em] text-xs uppercase animate-pulse relative z-10">Initializing_Core...</span>
+  return (
+    <div className="flex flex-col items-center justify-center relative group">
+      <div className={`relative w-36 h-36 flex items-center justify-center rounded-full ${shadowClass} transition-all duration-500 group-hover:scale-105`}>
+        <svg className="transform -rotate-90 w-32 h-32 absolute">
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={fromColor} />
+              <stop offset="100%" stopColor={toColor} />
+            </linearGradient>
+          </defs>
+          <circle cx="64" cy="64" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/[0.05]" />
+          <motion.circle
+            cx="64" cy="64" r={radius}
+            stroke={`url(#${gradientId})`}
+            strokeWidth="8" fill="transparent"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center justify-center text-center">
+          <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className={`text-4xl font-black italic tracking-tighter ${colorClass}`}>
+            {value || 0}%
+          </motion.span>
+        </div>
+      </div>
+      <div className="mt-4 text-center">
+        <h4 className="text-white font-bold text-sm tracking-widest uppercase">{title}</h4>
+        <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1">{subtitle}</p>
       </div>
     </div>
   );
+};
+
+export default function ATSCheckerPage() {
+  const [userData, setUserData] = useState<any>(null);
+  const [jobDesc, setJobDesc] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
+
+  // Basic word count for validation
+  const wordCount = jobDesc.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+  useEffect(() => {
+    setMounted(true);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docSnap = await getDoc(doc(db, "portfolios", user.uid));
+        if (docSnap.exists()) setUserData(docSnap.data());
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Engine runs continuously to provide Base Health immediately
+  const result = analyzeATS(userData, jobDesc.trim()); 
+
+  const startScan = () => {
+    if (!jobDesc || wordCount < 10) return alert("Please enter a valid Job Description (min 10 words) to run Match Index scan!");
+    
+    setIsScanning(true);
+    setShowResults(false);
+    setScanStep(0);
+
+    const steps = [
+      "Tokenizing Job Description...",
+      "Extracting Keyword Vectors...",
+      "Normalizing Semantic Nodes...",
+      "Comparing Against User Profile...",
+      "Calculating Final Match Index..."
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      currentStep++;
+      if (currentStep < steps.length) {
+        setScanStep(currentStep);
+      }
+    }, 600);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      setIsScanning(false);
+      setShowResults(true);
+    }, 3200); 
+  };
+
+  const scanStepsText = [
+    "Tokenizing Job Description...",
+    "Extracting Keyword Vectors...",
+    "Normalizing Semantic Nodes...",
+    "Comparing Against User Profile...",
+    "Calculating Final Match Index..."
+  ];
+
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#000000] text-zinc-100 font-sans overflow-x-hidden selection:bg-cyan-500/30 relative">
+    <div className="min-h-screen bg-[#030014] text-white selection:bg-fuchsia-600/30 overflow-x-hidden relative font-sans">
       
-      {/* 🚀 STICKY HEADER */}
-      <div className="fixed top-0 left-0 w-full z-[100] border-b border-white/[0.04] bg-[#000000]/80 backdrop-blur-xl">
+      {/* 🚀 STICKY HEADER SECTION */}
+      <div className="fixed top-0 left-0 w-full z-[100] bg-[#030014]/80 backdrop-blur-xl border-b border-white/[0.05]">
         <Header />
       </div>
       
-      {/* 🌌 DYNAMIC BACKGROUND: Moving Grid & Orbs */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] animate-grid-flow"></div>
-        <motion.div 
-          animate={{ opacity: [0.03, 0.08, 0.03], scale: [1, 1.1, 1], x: [0, 50, 0] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-cyan-500/30 blur-[180px] rounded-full" 
-        />
-        <motion.div 
-          animate={{ opacity: [0.02, 0.06, 0.02], scale: [1.1, 1, 1.1], x: [0, -50, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-600/30 blur-[180px] rounded-full" 
-        />
+      {/* Background Ambience */}
+      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000 delay-500" />
+      
+      <div className="fixed inset-0 pointer-events-none opacity-10">
+        <motion.div animate={{ y: [-500, 1000] }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="w-full h-[2px] bg-fuchsia-500 shadow-[0_0_30px_#d946ef]" />
       </div>
 
-      <main className="max-w-7xl mx-auto pt-32 md:pt-44 p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+      <main className="max-w-7xl mx-auto p-4 md:p-10 pt-32 md:pt-40 space-y-10 relative z-10">
         
-        {/* --- LEFT NAVIGATION: SLEEK GLASS PANEL --- */}
-        <div className="lg:col-span-3">
-          <motion.div 
-            initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={springConfig}
-            className="md:sticky md:top-36 space-y-8"
-          >
-            {/* User Profile Card */}
-            <motion.div whileHover={smoothHover} className="bg-[#050505] border border-white/[0.04] rounded-3xl p-8 flex flex-col items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700" />
-                <motion.div className="relative z-10">
-                    <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center p-1 border border-white/10 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative">
-                        <div className="absolute inset-0 rounded-full border-t border-r border-cyan-400 animate-spin-slow opacity-60" />
-                        <div className="absolute inset-2 rounded-full border-b border-l border-indigo-500 animate-spin-slow-reverse opacity-40" />
-                        <div className="w-full h-full bg-zinc-900 rounded-full flex items-center justify-center relative z-10">
-                           <UserCircle className="w-10 h-10 text-zinc-400 group-hover:text-cyan-400 transition-colors duration-500" />
-                        </div>
-                    </div>
-                </motion.div>
-                <h3 className="font-bold text-lg tracking-tight mt-5 text-white z-10 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-indigo-400 transition-all duration-500">{user?.displayName || "Elite User"}</h3>
-                <div className="flex items-center gap-1.5 text-[9px] text-cyan-400 font-bold uppercase mt-2 tracking-widest bg-cyan-400/10 px-4 py-1.5 rounded-full border border-cyan-400/20 z-10 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-                  <ShieldCheck className="w-3 h-3" /> Secure Node
-                </div>
-            </motion.div>
-            
-            {/* Navigation Tabs */}
-            <div className="bg-[#050505] border border-white/[0.04] rounded-3xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-1">
-                {[
-                  { id: 'feed', icon: Activity, label: 'Main Stream' },
-                  { id: 'queries', icon: HelpCircle, label: 'Node Queries' }
-                ].map((tab) => {
-                  const isActive = activeTab === tab.id && !isFilterMyPosts;
-                  return (
-                    <motion.button 
-                      key={tab.id}
-                      whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => {setActiveTab(tab.id as any); setOpenItem(null); setIsFilterMyPosts(false);}} 
-                      className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                        isActive ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      {isActive && <motion.div layoutId="navTab" className="absolute inset-0 bg-white/[0.05] border border-white/[0.05] rounded-2xl shadow-inner" transition={springConfig} />}
-                      <tab.icon className={`w-4 h-4 relative z-10 transition-colors duration-500 ${isActive ? 'text-cyan-400' : 'group-hover:text-zinc-300'}`} /> 
-                      <span className="relative z-10">{tab.label}</span>
-                    </motion.button>
-                  )
-                })}
-
-                <div className="pt-3 mt-3 border-t border-white/[0.04]">
-                   <motion.button 
-                    whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsFilterMyPosts(!isFilterMyPosts)} 
-                    className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                      isFilterMyPosts ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                   >
-                      {isFilterMyPosts && <motion.div layoutId="navTab" className="absolute inset-0 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shadow-[0_0_15px_rgba(99,102,241,0.15)]" transition={springConfig} />}
-                      <Folders className="w-4 h-4 relative z-10" /> 
-                      <span className="relative z-10">{isFilterMyPosts ? 'Showing Mine' : 'My Archive'}</span>
-                   </motion.button>
-                </div>
+        {/* --- HEADER --- */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/[0.02] p-8 md:p-12 rounded-3xl border border-white/[0.08] backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
+          <div className="space-y-3 text-center md:text-left">
+            <div className="flex items-center gap-3 justify-center md:justify-start text-fuchsia-400">
+               <Cpu className="w-5 h-5 animate-pulse" />
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] bg-fuchsia-500/10 border border-fuchsia-500/20 px-3 py-1 rounded-full">Neural Scanner v6.0</span>
             </div>
-          </motion.div>
-        </div>
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-fuchsia-200 to-violet-400 drop-shadow-lg">
+              ATS_OPTIMIZER<span className="text-fuchsia-500">.</span>
+            </h1>
+            <p className="text-zinc-400 text-sm md:text-base font-medium max-w-xl">
+              Monitor your Base Profile Health instantly. Paste a target Job Description to benchmark your skills and unlock the Match Index.
+            </p>
+          </div>
 
-        {/* --- CENTER FEED: MODERN GLASS CARDS --- */}
-        <div className="lg:col-span-6 space-y-10">
+          {/* Quick Header Stats (ALWAYS VISIBLE NOW) */}
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-6 md:gap-8 bg-black/40 p-6 rounded-3xl border border-white/5 shadow-inner">
+              <div className="text-center">
+                <div className="text-4xl font-black italic text-violet-400">{result.gScore || 0}%</div>
+                <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Base Health</p>
+              </div>
+              <div className="w-px bg-white/10" />
+              <div className="text-center">
+                <div className="text-4xl font-black italic text-fuchsia-400">{showResults ? result.mScore : '--'}%</div>
+                <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Match Index</p>
+              </div>
+          </motion.div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Input Console */}
-          <motion.div 
-            initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springConfig} 
-            className="relative p-[1px] rounded-[2.5rem] bg-gradient-to-b from-white/[0.08] to-transparent overflow-hidden group focus-within:from-cyan-500/50 transition-colors duration-500 shadow-2xl"
-          >
-             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-indigo-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
-             <div className="relative bg-[#050505] rounded-[calc(2.5rem-1px)] p-6 md:p-8 h-full">
-               <div className="flex items-center gap-3 mb-4">
-                  <Orbit className="w-4 h-4 text-cyan-500 animate-spin-slow" />
-                  <span className="text-[9px] text-cyan-500/70 font-black uppercase tracking-[0.4em]">Broadcast_Console</span>
-               </div>
-               <textarea 
-                  value={newInput} onChange={(e) => setNewInput(e.target.value)}
-                  placeholder={activeTab === 'feed' ? "Initialize a new thought stream..." : "Query the neural network..."}
-                  className="w-full bg-transparent border-none outline-none text-base md:text-lg font-medium h-24 resize-none text-zinc-100 placeholder:text-zinc-700 scrollbar-hide focus:placeholder:text-zinc-800 transition-colors duration-300"
-               />
-               <div className="flex justify-end items-center pt-2">
-                  <motion.button 
-                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleMainPost} 
-                      className={`relative group/btn overflow-hidden px-8 py-3.5 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 border border-white/[0.1] text-zinc-100 shadow-[0_10px_40px_rgba(0,0,0,0.5)]`}
-                  >
-                      <div className={`absolute inset-0 opacity-90 group-hover/btn:opacity-100 transition-opacity ${activeTab === 'feed' ? 'bg-gradient-to-r from-cyan-600 to-blue-600' : 'bg-gradient-to-r from-indigo-600 to-violet-600'}`} />
-                      <div className="absolute inset-[1px] bg-black/20 rounded-2xl" />
-                      <span className="relative z-10 group-hover/btn:text-white transition-colors">Deploy</span> 
-                      <Zap className="w-3.5 h-3.5 relative z-10 fill-current group-hover/btn:text-cyan-300 transition-colors" />
-                  </motion.button>
-               </div>
-             </div>
-          </motion.div>
+          {/* --- LEFT COLUMN: INPUT & HEATMAP --- */}
+          <div className="lg:col-span-7 space-y-8">
+            
+            {/* INPUT BOX */}
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl group h-fit shadow-2xl">
+              <div className="flex justify-between items-end mb-6">
+                <h2 className="text-zinc-400 font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
+                   <FileText className="w-4 h-4 text-fuchsia-500" /> Target Job Description
+                </h2>
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${wordCount > 10 ? 'text-green-400 bg-green-400/10 border-green-400/20' : 'text-zinc-500 bg-zinc-800 border-zinc-700'}`}>
+                  {wordCount} Words
+                </span>
+              </div>
+              
+              <textarea 
+                value={jobDesc} onChange={(e) => setJobDesc(e.target.value)}
+                placeholder="Paste the target Job Description here to unlock the Match Index..."
+                className="w-full h-80 md:h-96 bg-black/50 p-6 rounded-2xl border border-white/[0.05] text-zinc-100 focus:border-fuchsia-500/50 focus:ring-4 focus:ring-fuchsia-500/10 outline-none transition-all font-mono text-sm leading-relaxed shadow-inner placeholder-zinc-700 custom-scrollbar"
+              />
+              
+              <motion.button 
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                onClick={startScan} disabled={isScanning}
+                className="w-full mt-6 bg-gradient-to-r from-fuchsia-600 to-violet-600 py-5 rounded-xl font-black flex items-center justify-center gap-3 transition-all uppercase tracking-[0.2em] text-xs shadow-[0_0_30px_rgba(217,70,239,0.2)] hover:shadow-[0_0_40px_rgba(217,70,239,0.4)] disabled:opacity-50 border border-white/20 text-white"
+              >
+                {isScanning ? <Activity className="animate-spin w-5 h-5" /> : <Crosshair className="w-5 h-5" />}
+                {isScanning ? "PROCESSING_VECTORS..." : "INITIALIZE_SCAN"}
+              </motion.button>
+            </motion.div>
 
-          <LayoutGroup>
-            <motion.div layout className="space-y-8 pb-32">
-              <AnimatePresence mode="popLayout">
-                {displayedItems.map((item, idx) => {
-                  const itemLikes = Array.isArray(item.likes) ? item.likes : [];
-                  const isLiked = itemLikes.includes(user?.uid);
-                  return (
-                    <motion.div 
-                      layout initial={{ opacity: 0, y: 50, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }} transition={{ delay: idx * 0.05, ...springConfig }}
-                      key={item.id} 
-                      className="relative p-[1px] rounded-[3rem] bg-gradient-to-b from-white/[0.08] to-white/[0.01] overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-500"
-                    >
-                      {/* ANIMATED GLOWING BORDER EFFECT */}
-                      <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(6,182,212,0.4)_360deg)] opacity-0 group-hover:opacity-100 animate-spin-slow transition-opacity duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                      
-                      <div className="relative bg-[#050505]/95 backdrop-blur-2xl rounded-[calc(3rem-1px)] p-8 md:p-10 h-full flex flex-col">
-                        
-                        {/* Delete Button */}
-                        {item.authorId === user?.uid && (
-                          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteItem(item.id)} className="absolute top-8 right-8 p-2 text-zinc-600 hover:text-red-400 bg-white/[0.02] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-xl transition-all opacity-0 group-hover:opacity-100">
-                             <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        )}
-
-                        {/* Header */}
-                        <div className="flex items-center gap-5 mb-8">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-[#050505] flex items-center justify-center text-sm font-bold text-zinc-400 border border-white/[0.05] group-hover:border-cyan-500/30 transition-colors shadow-inner relative overflow-hidden">
-                              <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              <span className="relative z-10">{item.authorName?.[0]}</span>
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-2 group-hover:text-cyan-300 transition-colors duration-300">
-                                  {item.authorName} <Sparkles className="w-3 h-3 text-cyan-500 opacity-50" />
-                                </h4>
-                                <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-1 flex items-center gap-1">
-                                  Verified_Data_Node
-                                </p>
-                            </div>
+            {/* 🔥 REAL-TIME SKILL GAP HEATMAP */}
+            <AnimatePresence>
+                {showResults && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-white/[0.05] pb-4">
+                            <LayoutGrid className="w-4 h-4 text-fuchsia-500" /> Semantic Skill Matrix
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {result.heatmap?.map((item: any, i: number) => (
+                                <div key={i} className={`p-3 rounded-xl border flex items-center justify-between transition-all duration-300 hover:-translate-y-1 ${item.found ? 'bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'bg-red-500/10 border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]'}`}>
+                                    <p className={`text-[10px] font-bold uppercase truncate tracking-wider ${item.found ? 'text-green-400' : 'text-red-400'}`}>{item.word}</p>
+                                    {item.found ? <CheckCircle2 className="w-3 h-3 text-green-500" /> : <AlertTriangle className="w-3 h-3 text-red-500" />}
+                                </div>
+                            ))}
                         </div>
-
-                        {/* Content */}
-                        <p className="text-[15px] md:text-base text-zinc-300 leading-relaxed mb-10 whitespace-pre-wrap font-medium">{item.content}</p>
-
-                        {/* Actions */}
-                        <div className="flex gap-8 border-t border-white/[0.04] pt-6 mt-auto">
-                            <motion.button 
-                              whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.8 }} 
-                              onClick={() => handleLike(item.id, itemLikes)} 
-                              className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${isLiked ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'text-zinc-500 hover:text-zinc-200'}`}
-                            >
-                                <ThumbsUp className={`w-4 h-4 transition-all duration-300 ${isLiked ? 'fill-current scale-110' : ''}`} /> 
-                                <span className="font-mono text-sm">{itemLikes.length}</span>
-                            </motion.button>
-                            
-                            <motion.button 
-                              whileHover={{ scale: 1.05, x: 2 }} whileTap={{ scale: 0.95 }}
-                              onClick={() => setOpenItem(openItem === item.id ? null : item.id)} 
-                              className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${openItem === item.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-200'}`}
-                            >
-                                <MessageSquare className="w-4 h-4" /> 
-                                {activeTab === 'feed' ? 'Discuss' : 'Provide Answer'}
-                            </motion.button>
-                        </div>
-
-                        {/* Comments / Replies Section */}
-                        <AnimatePresence>
-                          {openItem === item.id && (
-                            <motion.div 
-                              initial={{ opacity: 0, height: 0, filter: "blur(10px)" }} animate={{ opacity: 1, height: 'auto', filter: "blur(0px)" }} exit={{ opacity: 0, height: 0, filter: "blur(10px)" }} transition={springConfig}
-                              className="mt-8 pt-8 border-t border-white/[0.04] space-y-5 overflow-hidden"
-                            >
-                               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                  {subItems.length === 0 && <p className="text-zinc-600 text-xs font-medium italic text-center py-4">No data fragments found. Be the first to deploy.</p>}
-                                  {subItems.map((sub, subIdx) => (
-                                     <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: subIdx * 0.05, ...springConfig }} key={sub.id} className="bg-white/[0.02] p-5 rounded-2xl border border-white/[0.02] flex justify-between items-start hover:bg-white/[0.04] hover:border-white/[0.08] transition-all group/sub">
-                                        <div className="flex-1">
-                                           <p className="text-[10px] text-zinc-500 font-bold mb-1 uppercase tracking-wider">{sub.authorName}</p>
-                                           <p className="text-sm text-zinc-300 font-medium leading-relaxed">{sub.text}</p>
-                                        </div>
-                                        {sub.authorId === user?.uid && (
-                                          <button onClick={() => handleDeleteSubItem(item.id, sub.id)} className="text-zinc-600 hover:text-red-400 p-2 opacity-0 group-hover/sub:opacity-100 transition-opacity bg-white/[0.02] hover:bg-red-500/10 rounded-lg">
-                                             <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
-                                     </motion.div>
-                                  ))}
-                               </div>
-                               
-                               {/* Reply Input */}
-                               <div className="flex gap-3 items-center bg-[#000000] p-1.5 rounded-2xl border border-white/[0.05] focus-within:border-cyan-500/40 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all duration-300 mt-6">
-                                  <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a response payload..." className="flex-1 bg-transparent px-5 py-3 text-sm outline-none font-medium text-zinc-200 placeholder:text-zinc-600" />
-                                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleSubPost(item.id)} className="p-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-xl hover:bg-cyan-500 hover:text-white transition-colors shadow-lg">
-                                      <Send className="w-4 h-4 relative -ml-0.5" />
-                                  </motion.button>
-                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
                     </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </motion.div>
-          </LayoutGroup>
-        </div>
+                )}
+            </AnimatePresence>
+          </div>
 
-        {/* --- RIGHT PANEL: DATA STREAM --- */}
-        <div className="lg:col-span-3 hidden lg:block space-y-8">
-            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={springConfig} className="bg-[#050505] border border-white/[0.04] rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:sticky md:top-36 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-duration-700" />
-                <h3 className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-8 flex items-center gap-2 relative z-10">
-                    <Layers className="w-4 h-4 text-indigo-400" /> Trending Nodes
-                </h3>
-                <div className="space-y-6 relative z-10">
-                    {[
-                      { tag: '#DeepSeek_v3', color: 'text-indigo-400', glow: 'from-indigo-500' },
-                      { tag: '#NextJS_16', color: 'text-zinc-100', glow: 'from-zinc-500' },
-                      { tag: '#Turbopack', color: 'text-rose-400', glow: 'from-rose-500' },
-                      { tag: '#Tailwind_v4', color: 'text-cyan-400', glow: 'from-cyan-500' }
-                    ].map((item, i) => (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, ...springConfig }} key={item.tag} className="flex flex-col gap-2 group/tag cursor-pointer">
-                            <div className={`flex justify-between items-center text-[11px] font-bold text-zinc-500 group-hover/tag:${item.color} transition-colors duration-300`}>
-                              <span className="group-hover/tag:translate-x-1 transition-transform duration-300">{item.tag}</span>
-                              <ArrowRight className="w-3 h-3 opacity-0 group-hover/tag:opacity-100 -translate-x-2 group-hover/tag:translate-x-0 transition-all duration-300" />
-                            </div>
-                            <div className="w-full h-[2px] bg-white/[0.02] rounded-full overflow-hidden">
-                               <motion.div 
-                                 initial={{ width: "0%" }} animate={{ width: "100%" }} 
-                                 transition={{ duration: 2.5 + i, repeat: Infinity, ease: "easeInOut" }}
-                                 className={`h-full bg-gradient-to-r transparent via-white/20 to-transparent group-hover/tag:${item.glow}`} 
-                               />
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </motion.div>
-        </div>
+          {/* --- RIGHT COLUMN: GRAPHS & RESULTS --- */}
+          <div className="lg:col-span-5 space-y-8">
+            <AnimatePresence mode="wait">
+              {isScanning ? (
+                <motion.div key="scan" className="h-full bg-white/[0.01] rounded-3xl border border-fuchsia-500/20 flex flex-col items-center justify-center p-12 min-h-[500px] backdrop-blur-md shadow-[0_0_50px_rgba(217,70,239,0.05)]">
+                   <div className="relative w-40 h-40 flex items-center justify-center mb-10">
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} className="absolute inset-0 border-t-4 border-l-4 border-fuchsia-500 rounded-full" />
+                      <motion.div animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }} className="absolute inset-4 border-b-4 border-r-4 border-violet-500 rounded-full opacity-50" />
+                      <Search className="w-10 h-10 text-fuchsia-400 animate-pulse" />
+                   </div>
+                   
+                   <div className="h-6 w-full text-center">
+                     <AnimatePresence mode="wait">
+                       <motion.p 
+                         key={scanStep}
+                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                         className="text-fuchsia-400 font-bold tracking-[0.2em] text-[10px] uppercase"
+                       >
+                         {scanStepsText[scanStep]}
+                       </motion.p>
+                     </AnimatePresence>
+                   </div>
+                   
+                   <div className="w-64 h-1.5 bg-zinc-900 rounded-full mt-6 overflow-hidden border border-white/5">
+                     <motion.div initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 3.2, ease: "linear" }} className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500" />
+                   </div>
+                </motion.div>
+              ) : showResults ? (
+                // ==========================================
+                // SCANNED RESULTS VIEW
+                // ==========================================
+                <motion.div key="res" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 h-full">
+                  
+                  <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl flex justify-around items-center">
+                    <CircularProgress 
+                      value={result.gScore} title="Base Health" subtitle="Profile Quality"
+                      colorClass="text-violet-400" shadowClass="shadow-[0_0_30px_rgba(139,92,246,0.2)]"
+                      gradientId="gradHealth" fromColor="#a78bfa" toColor="#8b5cf6"
+                    />
+                    <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                    <CircularProgress 
+                      value={result.mScore} title="Match Index" subtitle="JD Alignment"
+                      colorClass="text-fuchsia-400" shadowClass="shadow-[0_0_30px_rgba(217,70,239,0.2)]"
+                      gradientId="gradMatch" fromColor="#f472b6" toColor="#d946ef"
+                    />
+                  </div>
 
+                  <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+                     <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-white/[0.05] pb-4">
+                        <BarChart3 className="w-4 h-4 text-cyan-400" /> Comparison Analytics
+                     </h3>
+                     <div className="space-y-6">
+                        <div>
+                            <div className="flex justify-between text-[10px] font-bold uppercase mb-2 tracking-widest text-zinc-400"><span>Keywords Matched</span><span className="text-cyan-400">{result.mScore}%</span></div>
+                            <div className="w-full bg-black/50 h-3 rounded-full border border-white/5 overflow-hidden shadow-inner p-0.5">
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${result.mScore}%` }} transition={{ duration: 1, delay: 0.5 }} className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full relative">
+                                  <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                </motion.div>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-[10px] font-bold uppercase mb-2 tracking-widest text-zinc-400"><span>Gap Mismatch</span><span className="text-red-400">{100 - result.mScore}%</span></div>
+                            <div className="w-full bg-black/50 h-3 rounded-full border border-white/5 overflow-hidden shadow-inner p-0.5">
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${100 - result.mScore}%` }} transition={{ duration: 1, delay: 0.5 }} className="h-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full" />
+                            </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  {result.missing.length > 0 && (
+                    <div className="bg-white/[0.02] p-8 rounded-3xl border border-red-500/20 backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.05)]">
+                       <h3 className="text-red-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2">
+                         <Target className="w-4 h-4" /> Missing Keywords Detected
+                       </h3>
+                       <div className="flex flex-wrap gap-2">
+                          {result.missing.map((kw, i) => (
+                            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 * i }} key={i} className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/30 px-4 py-2 rounded-xl font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                              + {kw}
+                            </motion.span>
+                          ))}
+                       </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+                     <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-white/[0.05] pb-4">
+                       <Shield className="w-4 h-4 text-yellow-400" /> Actionable Insights
+                     </h3>
+                     <div className="space-y-4">
+                        {result.suggestions.map((s, i) => (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + (i * 0.1) }} key={i} className="flex gap-4 items-start bg-black/40 p-5 rounded-2xl border border-white/[0.03] text-[11px] text-zinc-300 leading-relaxed hover:border-white/[0.1] transition-colors shadow-inner">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 shadow-[0_0_10px_currentColor] ${s.includes('NLP Tip') ? 'bg-cyan-400 text-cyan-400' : 'bg-yellow-400 text-yellow-400'}`} /> 
+                            <p className={s.includes('NLP Tip') ? 'text-cyan-300 font-semibold' : ''}>{s}</p>
+                          </motion.div>
+                        ))}
+                     </div>
+                  </div>
+
+                </motion.div>
+              ) : (
+                // ==========================================
+                // INITIAL DEFAULT VIEW (BEFORE JD PASTE)
+                // ==========================================
+                <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full bg-white/[0.02] rounded-3xl border border-white/[0.05] p-8 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center">
+                  <div className="mb-10">
+                    <CircularProgress 
+                      value={result.gScore || 0} title="Base Health" subtitle="Profile Quality"
+                      colorClass="text-violet-400" shadowClass="shadow-[0_0_30px_rgba(139,92,246,0.2)]"
+                      gradientId="gradHealthInitial" fromColor="#a78bfa" toColor="#8b5cf6"
+                    />
+                  </div>
+
+                  <div className="w-full max-w-md text-left space-y-4">
+                    <h3 className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest border-b border-white/[0.05] pb-4 flex items-center gap-2 mb-4">
+                      <Shield className="w-4 h-4 text-violet-400" /> Initial Profile Diagnostics
+                    </h3>
+                    
+                    {result.suggestions?.length > 0 ? (
+                      <div className="space-y-3">
+                        {result.suggestions.map((s: string, i: number) => (
+                          <div key={i} className="flex gap-4 items-start bg-black/40 p-5 rounded-2xl border border-white/[0.03] text-[11px] text-zinc-400 shadow-inner">
+                            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0 shadow-[0_0_8px_#8b5cf6]" />
+                            <p>{s}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-2xl text-center">
+                        <p className="text-[11px] text-green-400 font-bold tracking-wider">
+                          Base profile is perfectly optimized! Ready for JD matching.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-12 p-5 border border-dashed border-white/10 rounded-2xl bg-white/[0.01] w-full max-w-md">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center gap-2">
+                      <Target className="w-4 h-4 text-fuchsia-500/50" /> Paste Job Description to unlock Match Index
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </main>
-
-      <style jsx global>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-        @keyframes spin-slow-reverse {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        .animate-spin-slow-reverse {
-          animation: spin-slow-reverse 10s linear infinite;
-        }
-        @keyframes grid-flow {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(40px); }
-        }
-        .animate-grid-flow {
-          animation: grid-flow 3s linear infinite;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
-      `}</style>
-      <Footer/>
+      <Footer />
     </div>
   );
 }
