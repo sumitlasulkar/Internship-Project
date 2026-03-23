@@ -1,21 +1,15 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { db, auth } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { Activity, BrainCircuit, Terminal, ArrowLeft, Database, Zap, Code, Briefcase, GraduationCap, SlidersHorizontal, BarChart3 } from 'lucide-react';
-import { div } from 'framer-motion/m';
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// --- MOCK CURRENT PROFILE DATA ---
-// Replace this with your actual Firebase data fetch later
-const currentProfile = {
-  skillsCount: 15,
-  projectsCount: 3,
-  expCount: 2,
-};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -37,8 +31,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsPage() {
-  const [mounted, setMounted] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isPredicted, setIsPredicted] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
 
   // Simulation State
@@ -49,20 +46,54 @@ export default function AnalyticsPage() {
 
   const springConfig = { type: "spring" as const, stiffness: 300, damping: 30 };
 
-  // Calculate Scores
-  const currentScore = (currentProfile.skillsCount * 3) + (currentProfile.projectsCount * 20) + (currentProfile.expCount * 25);
+  // 🔴 1. REAL-TIME FIREBASE DATA FETCHING 🔴
+  useEffect(() => {
+    let unsubSnapshot: any;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        unsubSnapshot = onSnapshot(doc(db, "portfolios", user.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            setUserData({}); 
+          }
+          setIsAuthLoading(false);
+        });
+      } else {
+        setUserData(null);
+        setIsAuthLoading(false);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
+  }, []);
+
+  // 🔴 2. DYNAMIC SCORE CALCULATION FROM FIREBASE DATA 🔴
+  const currentSkillsCount = Array.isArray(userData?.skills) 
+    ? userData.skills.reduce((acc: number, skill: any) => acc + (skill.items?.split(',').length || 0), 0) 
+    : 0;
+  const currentProjectsCount = Array.isArray(userData?.projects) ? userData.projects.length : 0;
+  const currentExpCount = Array.isArray(userData?.experiences) ? userData.experiences.length : 0;
+
+  // Base Score logic: Skills(3) + Projects(20) + Exp(25)
+  const currentScore = (currentSkillsCount * 3) + (currentProjectsCount * 20) + (currentExpCount * 25);
   
   const projectedAddedScore = (targetSkills * 3) + (targetProjects * 20) + (targetExp * 25);
   const targetTotalScore = currentScore + projectedAddedScore;
 
-  // Generate Graph Data
-  const generateData = () => {
+  // 🔴 3. GRAPH DATA GENERATOR 🔴
+  const generateData = (runSimulation = false) => {
     const date = new Date();
     const currentMonthIdx = date.getMonth();
     
-    // 1. Past Data (6 Months)
+    // Past Data (6 Months)
     const dataPoints = [];
-    let tempScore = currentScore - 60; // Assume started 60 points lower 6 months ago
+    let tempScore = currentScore - 60; // Start 60 points lower 6 months ago
+    if (tempScore < 0) tempScore = 0;
     
     for (let i = 5; i > 0; i--) {
       let mIdx = (currentMonthIdx - i + 12) % 12;
@@ -70,42 +101,72 @@ export default function AnalyticsPage() {
       dataPoints.push({ month: monthNames[mIdx], actual: tempScore, predicted: null });
     }
     
-    // Current Month
+    // Current Month Connect point
     dataPoints.push({ month: monthNames[currentMonthIdx], actual: currentScore, predicted: currentScore });
 
-    // 2. Future Forecast Data
-    const growthPerMonth = projectedAddedScore / timeframe;
+    // Future Forecast Data
+    const addedScore = runSimulation ? projectedAddedScore : 0;
+    const finalTarget = currentScore + addedScore;
+    const growthPerMonth = addedScore / timeframe;
     let simScore = currentScore;
 
     for (let i = 1; i <= timeframe; i++) {
       let mIdx = (currentMonthIdx + i) % 12;
       simScore += growthPerMonth;
-      // Add slight randomness to make it look like a real stock graph
-      let noise = (Math.random() * 10) - 5; 
+      let noise = runSimulation ? (Math.random() * 10) - 5 : 0; 
+      
       dataPoints.push({ 
         month: monthNames[mIdx], 
         actual: null, 
-        predicted: i === timeframe ? targetTotalScore : Math.round(simScore + noise) 
+        predicted: i === timeframe ? finalTarget : Math.round(simScore + noise) 
       });
     }
 
     return dataPoints;
   };
 
+  // Auto-update graph when real data loads (Default Flat View)
   useEffect(() => {
-    setMounted(true);
-    setChartData(generateData());
-  }, []); // Initial load
+    if (!isAuthLoading) {
+      setChartData(generateData(false));
+      setIsPredicted(false);
+    }
+  }, [userData, isAuthLoading, timeframe]);
 
   const runSimulation = () => {
     setIsSimulating(true);
     setTimeout(() => {
-      setChartData(generateData());
+      setChartData(generateData(true));
+      setIsPredicted(true);
       setIsSimulating(false);
-    }, 1500); // 1.5s fake computation delay for "wow" factor
+    }, 1500);
   };
 
-  if (!mounted) return null;
+  // Loading Screen
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }} className="w-12 h-12 border-t-2 border-cyan-500 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.5)]" />
+          <span className="text-cyan-500 font-bold tracking-[0.3em] text-xs uppercase animate-pulse">Syncing Database...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Not Logged In Screen
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-[#000000] text-zinc-100 flex flex-col items-center justify-center p-4 text-center">
+        <Database size={48} className="text-zinc-700 mb-6" />
+        <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+        <p className="text-zinc-500 mb-8">Please authenticate to view your live analytics.</p>
+        <Link href="/">
+          <button className="bg-cyan-500 text-black px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs">Return to Home</button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#000000] text-zinc-100 font-sans selection:bg-cyan-500/30 p-4 md:p-10 relative overflow-x-hidden flex flex-col items-center">
@@ -129,16 +190,16 @@ export default function AnalyticsPage() {
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div>
              <h1 className="text-4xl md:text-5xl font-medium text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight mb-3">Hyper-Predictive Analytics.</h1>
-             <p className="text-zinc-400 text-sm max-w-xl leading-relaxed">Simulate future career trajectories based on algorithmic estimations of your planned projects, skills, and experience acquisitions.</p>
+             <p className="text-zinc-400 text-sm max-w-xl leading-relaxed">Simulate future career trajectories based on algorithmic estimations of your live database projects, skills, and experience acquisitions.</p>
            </div>
            <div className="flex gap-4">
               <div className="bg-[#050505] border border-white/[0.05] px-6 py-4 rounded-2xl flex flex-col shadow-xl">
-                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><Database size={12} className="text-cyan-500"/> Current Score</span>
+                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><Database size={12} className="text-cyan-500"/> Current Live Score</span>
                  <span className="text-2xl font-black text-white">{currentScore} <span className="text-sm text-zinc-600">pts</span></span>
               </div>
               <div className="bg-cyan-500/10 border border-cyan-500/20 px-6 py-4 rounded-2xl flex flex-col shadow-[0_0_20px_rgba(6,182,212,0.15)]">
                  <span className="text-[9px] text-cyan-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><Zap size={12}/> Target Potential</span>
-                 <span className="text-2xl font-black text-cyan-400">{targetTotalScore} <span className="text-sm opacity-50">pts</span></span>
+                 <span className="text-2xl font-black text-cyan-400">{isPredicted ? targetTotalScore : '--'} <span className="text-sm opacity-50">pts</span></span>
               </div>
            </div>
         </div>
@@ -212,28 +273,28 @@ export default function AnalyticsPage() {
               {/* Slider 1 */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Code size={12}/> New Skills</label>
+                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Code size={12}/> Target Skills (+3 pts)</label>
                   <span className="bg-white/[0.05] px-3 py-1 rounded-md text-xs font-mono font-bold text-white">{targetSkills}</span>
                 </div>
-                <input type="range" min="0" max="20" value={targetSkills} onChange={(e) => setTargetSkills(Number(e.target.value))} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                <input type="range" min="0" max="20" value={targetSkills} onChange={(e) => { setTargetSkills(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
               </div>
 
               {/* Slider 2 */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={12}/> Major Projects</label>
+                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={12}/> Target Projects (+20 pts)</label>
                   <span className="bg-white/[0.05] px-3 py-1 rounded-md text-xs font-mono font-bold text-white">{targetProjects}</span>
                 </div>
-                <input type="range" min="0" max="10" value={targetProjects} onChange={(e) => setTargetProjects(Number(e.target.value))} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                <input type="range" min="0" max="10" value={targetProjects} onChange={(e) => { setTargetProjects(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
               </div>
 
               {/* Slider 3 */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><GraduationCap size={12}/> Experiences / Certs</label>
+                  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><GraduationCap size={12}/> Target Experiences (+25 pts)</label>
                   <span className="bg-white/[0.05] px-3 py-1 rounded-md text-xs font-mono font-bold text-white">{targetExp}</span>
                 </div>
-                <input type="range" min="0" max="5" value={targetExp} onChange={(e) => setTargetExp(Number(e.target.value))} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
+                <input type="range" min="0" max="5" value={targetExp} onChange={(e) => { setTargetExp(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1.5 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
               </div>
 
               {/* Timeframe Selector */}
@@ -242,7 +303,8 @@ export default function AnalyticsPage() {
                 <div className="flex gap-2 bg-[#050505] p-1.5 rounded-xl border border-white/[0.05]">
                   {[3, 6, 12].map(months => (
                     <button 
-                      key={months} onClick={() => setTimeframe(months)}
+                      key={months} 
+                      onClick={() => { setTimeframe(months); setIsPredicted(false); }}
                       className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeframe === months ? 'bg-indigo-500/20 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'text-zinc-600 hover:text-zinc-300'}`}
                     >
                       {months}m
@@ -256,7 +318,7 @@ export default function AnalyticsPage() {
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={runSimulation}
               disabled={isSimulating}
-              className="w-full mt-8 bg-gradient-to-r from-cyan-600 to-indigo-600 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-[0_10px_30px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_40px_rgba(99,102,241,0.5)] transition-shadow border border-white/10"
+              className="w-full mt-8 bg-gradient-to-r from-cyan-600 to-indigo-600 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-[0_10px_30px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_40px_rgba(99,102,241,0.5)] transition-shadow border border-white/10 disabled:opacity-50"
             >
               <BrainCircuit size={16} /> Execute Simulation
             </motion.button>
@@ -265,17 +327,16 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-     <style dangerouslySetInnerHTML={{ __html: `
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    height: 16px; width: 16px;
-    border-radius: 50%;
-    background: #06b6d4;
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
-  }
-      `}}>
-      </style>
+      <style dangerouslySetInnerHTML={{ __html: `
+        input[type=range]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          height: 16px; width: 16px;
+          border-radius: 50%;
+          background: #06b6d4;
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+      `}} />
     </div>
   );
 }
