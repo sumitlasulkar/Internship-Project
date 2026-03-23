@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { 
     Send, User, Plus, Menu, X, Trash2, Cpu, 
-    ChevronLeft, Sparkles, Edit3, Activity, Terminal, Zap, Orbit
+    ChevronLeft, Sparkles, Edit3, Activity, Zap, Orbit, ArrowRight
 } from 'lucide-react';
 import Header from '../Home/header';
 import Footer from '../Home/Footer';
@@ -31,6 +31,7 @@ export default function NeuralSyncOS() {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const springConfig = { type: "spring" as const, stiffness: 350, damping: 30 };
+    const bubbleSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
 
     // Auto-close sidebar on mobile
     useEffect(() => {
@@ -129,10 +130,10 @@ export default function NeuralSyncOS() {
 
             {/* 🌌 AMBIENT BACKGROUND */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,#06b6d410_0%,transparent_50%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] animate-grid-flow" />
                 <motion.div 
-                  animate={{ opacity: [0.03, 0.06, 0.03], scale: [1, 1.1, 1] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/20 blur-[150px] rounded-full" 
+                  animate={{ opacity: [0.03, 0.08, 0.03], scale: [1, 1.1, 1], x: [0, 50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-cyan-600/20 blur-[150px] rounded-full" 
                 />
             </div>
 
@@ -167,7 +168,7 @@ export default function NeuralSyncOS() {
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-20 group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="absolute inset-[1px] bg-[#0A0A0A] rounded-2xl transition-colors duration-300 group-hover:bg-transparent" />
-                        <div className="relative flex items-center justify-center gap-2 z-10">
+                        <div className="relative flex items-center justify-center gap-2 z-10 group-hover:text-cyan-50 transition-colors">
                             <Plus className="w-4 h-4" /> New_Uplink
                         </div>
                     </motion.button>
@@ -175,12 +176,12 @@ export default function NeuralSyncOS() {
                     <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-[0.3em] mb-4 ml-2">Session_Logs</div>
 
                     <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        <AnimatePresence>
+                        <AnimatePresence initial={false}>
                             {sessions.map((session) => {
                                 const isActive = activeSessionId === session.id;
                                 return (
                                     <motion.div 
-                                        layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9 }} transition={springConfig}
+                                        layout initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={springConfig}
                                         key={session.id} 
                                         onClick={() => {
                                             setActiveSessionId(session.id);
@@ -192,15 +193,15 @@ export default function NeuralSyncOS() {
                                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-500 ${isActive ? 'bg-cyan-400 shadow-[0_0_10px_#22d3ee]' : 'bg-zinc-700 group-hover:bg-zinc-500'}`} />
                                             {editingId === session.id ? (
                                                 <form onSubmit={saveRename} className="w-full">
-                                                    <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={saveRename} className="bg-black/50 border border-cyan-500/30 rounded p-1 text-[11px] text-cyan-100 outline-none w-full font-mono" />
+                                                    <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={saveRename} className="bg-black/50 border border-cyan-500/30 rounded p-1.5 text-[11px] text-cyan-100 outline-none w-full font-mono shadow-inner" />
                                                 </form>
                                             ) : (
-                                                <span className={`text-[11px] font-bold tracking-wider truncate transition-colors ${isActive ? 'text-cyan-100' : 'text-zinc-500 group-hover:text-zinc-300'}`}>{session.title}</span>
+                                                <span className={`text-[11px] font-bold tracking-wider truncate transition-all duration-300 ${isActive ? 'text-cyan-100' : 'text-zinc-500 group-hover:text-zinc-300 group-hover:translate-x-1'}`}>{session.title}</span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2 z-10">
-                                            <Edit3 size={12} className="text-zinc-500 hover:text-cyan-400 transition-colors" onClick={(e) => startRename(session.id, session.title, e)} />
-                                            <Trash2 size={12} className="text-zinc-500 hover:text-red-500 transition-colors" onClick={(e) => deleteSession(session.id, e)} />
+                                            <Edit3 size={13} className="text-zinc-500 hover:text-cyan-400 transition-colors" onClick={(e) => startRename(session.id, session.title, e)} />
+                                            <Trash2 size={13} className="text-zinc-500 hover:text-red-500 transition-colors" onClick={(e) => deleteSession(session.id, e)} />
                                         </div>
                                     </motion.div>
                                 )
@@ -216,26 +217,26 @@ export default function NeuralSyncOS() {
                 {/* Header */}
                 <header className="h-16 md:h-20 flex items-center px-4 md:px-8 justify-between border-b border-white/[0.04] bg-[#050505]/80 backdrop-blur-xl z-50">
                     <div className="flex items-center gap-4">
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05] text-zinc-400 hover:text-cyan-400 transition-colors">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05] text-zinc-400 hover:text-cyan-400 transition-colors shadow-sm">
                             {isSidebarOpen ? <ChevronLeft size={18} /> : <Menu size={18} />}
                         </motion.button>
                         <div className="flex flex-col">
                             <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-zinc-100 truncate max-w-[150px] md:max-w-none">
                                 {currentSession?.title || 'System_Terminal'}
                             </span>
-                            <span className="text-[8px] font-bold text-cyan-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" /> Uplink_Active
+                            <span className="text-[8px] font-bold text-cyan-600 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_#06b6d4]" /> Uplink_Active
                             </span>
                         </div>
                     </div>
                     
-                    <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.5 }} className="w-10 h-10 bg-white/[0.02] rounded-full flex items-center justify-center border border-white/[0.05] shadow-inner">
+                    <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.5 }} className="w-10 h-10 bg-[#0A0A0A] rounded-full flex items-center justify-center border border-white/[0.05] shadow-inner">
                         <Cpu size={16} className="text-cyan-400" />
                     </motion.div>
                 </header>
 
                 {/* Chat Feed */}
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 scroll-smooth custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 scroll-smooth custom-scrollbar relative">
                     <div className="max-w-3xl mx-auto space-y-8 pb-32">
                         <LayoutGroup>
                             <AnimatePresence initial={false}>
@@ -243,27 +244,29 @@ export default function NeuralSyncOS() {
                                     <motion.div 
                                         layout
                                         key={i}
-                                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        transition={springConfig}
+                                        transition={{ ...bubbleSpring, delay: i * 0.02 }} // Staggered entry
                                         className={`flex gap-4 md:gap-6 ${m.role === 'user' ? 'flex-row-reverse' : 'justify-start'}`}
                                     >
+                                        {/* Avatar Icon */}
                                         <div className="relative shrink-0 mt-2">
-                                            {m.role === 'bot' && <div className="absolute inset-0 bg-cyan-500/20 blur-[10px] rounded-full" />}
-                                            <div className={`relative w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border shadow-xl ${m.role === 'bot' ? 'bg-[#0A0A0A] border-cyan-500/30 text-cyan-400' : 'bg-white text-black border-transparent'}`}>
+                                            {m.role === 'bot' && <div className="absolute inset-0 bg-cyan-500/20 blur-[10px] rounded-full animate-pulse" />}
+                                            <div className={`relative w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border shadow-xl ${m.role === 'bot' ? 'bg-[#0A0A0A] border-cyan-500/30 text-cyan-400' : 'bg-gradient-to-tr from-zinc-100 to-zinc-300 text-black border-transparent'}`}>
                                                 {m.role === 'bot' ? <Orbit size={20} className="animate-spin-slow" /> : <User size={20} />}
                                             </div>
                                         </div>
                                         
+                                        {/* Message Bubble */}
                                         <div className={`flex flex-col max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                            <div className={`p-5 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap font-medium shadow-2xl ${
+                                            <div className={`p-5 rounded-3xl text-[15px] leading-relaxed whitespace-pre-wrap font-medium shadow-2xl transition-all duration-300 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] ${
                                                 m.role === 'bot' 
-                                                ? 'bg-[#0A0A0A] border border-white/[0.05] text-zinc-300 rounded-tl-sm' 
+                                                ? 'bg-[#0A0A0A] border border-white/[0.04] text-zinc-300 rounded-tl-sm hover:border-cyan-500/20' 
                                                 : 'bg-gradient-to-br from-zinc-100 to-zinc-300 text-black rounded-tr-sm'
                                             }`}>
                                                 {m.text}
                                             </div>
-                                            <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-600 mt-2 mx-1">
+                                            <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-600 mt-2 mx-2">
                                                 {m.role === 'bot' ? 'AI_Response' : 'User_Command'}
                                             </span>
                                         </div>
@@ -272,21 +275,29 @@ export default function NeuralSyncOS() {
                             </AnimatePresence>
                         </LayoutGroup>
                         
-                        {loading && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 ml-16 mt-4">
-                                <Activity className="w-4 h-4 text-cyan-500 animate-pulse" />
-                                <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.3em] animate-pulse">Neural_Processing...</span>
-                            </motion.div>
-                        )}
+                        {/* Loading State */}
+                        <AnimatePresence>
+                            {loading && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="flex items-center gap-3 ml-16 mt-4">
+                                    <div className="flex gap-1">
+                                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+                                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+                                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+                                    </div>
+                                    <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.3em]">Processing...</span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                         <div ref={scrollRef} className="h-4" />
                     </div>
                 </div>
 
                 {/* Input Console */}
-                <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 bg-gradient-to-t from-[#000000] via-[#000000]/80 to-transparent pb-8">
+                <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent pb-8 z-20">
                     <div className="max-w-3xl mx-auto relative group">
+                        
                         {/* Animated Glowing Border for Input */}
-                        <div className={`absolute -inset-[1px] rounded-3xl opacity-50 blur-sm transition-all duration-500 ${loading ? 'bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(6,182,212,1)_360deg)] animate-spin-slow' : 'bg-white/[0.05] group-focus-within:bg-cyan-500/30'}`} />
+                        <div className={`absolute -inset-[1px] rounded-3xl opacity-50 blur-[2px] transition-all duration-500 ${loading ? 'bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(6,182,212,1)_360deg)] animate-spin-slow' : 'bg-white/[0.05] group-focus-within:bg-cyan-500/30 group-focus-within:blur-md'}`} />
                         
                         <div className="relative flex gap-3 items-end bg-[#0A0A0A] border border-white/[0.05] rounded-3xl p-2.5 shadow-2xl">
                             <textarea 
@@ -297,14 +308,14 @@ export default function NeuralSyncOS() {
                                     if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChat(); }
                                 }}
                                 placeholder="Execute command parameter..."
-                                className="flex-1 bg-transparent px-4 py-3 min-h-[44px] max-h-32 text-sm text-zinc-100 outline-none resize-none font-medium placeholder:text-zinc-600 custom-scrollbar"
+                                className="flex-1 bg-transparent px-4 py-3.5 min-h-[48px] max-h-32 text-sm text-zinc-100 outline-none resize-none font-medium placeholder:text-zinc-600 custom-scrollbar"
                             />
                             <motion.button 
-                                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}
                                 onClick={handleChat}
                                 disabled={loading || !input.trim()}
                                 className={`w-12 h-12 flex items-center justify-center rounded-2xl shrink-0 transition-all duration-300 ${
-                                    !input.trim() || loading ? 'bg-white/[0.02] text-zinc-600 border border-white/[0.05]' : 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+                                    !input.trim() || loading ? 'bg-white/[0.02] text-zinc-600 border border-white/[0.05]' : 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:bg-cyan-400'
                                 }`}
                             >
                                 <Send size={18} className={input.trim() && !loading ? 'translate-x-0.5 -translate-y-0.5 transition-transform' : ''} />
@@ -317,6 +328,8 @@ export default function NeuralSyncOS() {
             <style jsx global>{`
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+                @keyframes grid-flow { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }
+                .animate-grid-flow { animation: grid-flow 3s linear infinite; }
                 .scrollbar-hide::-webkit-scrollbar { display: none; }
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
