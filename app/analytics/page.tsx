@@ -328,15 +328,7 @@ export default function AnalyticsPage() {
                     </ResponsiveContainer>
                  </div>
               </div>
-              <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col justify-between">
-                <div><h3 className="text-white text-sm font-bold flex items-center gap-2 mb-4"><Compass size={16} className="text-cyan-400"/> Alignment</h3>
-                  <div className="flex items-center gap-4">
-                    <div className="w-[100px] h-[100px]"><ResponsiveContainer><RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" data={radialData} startAngle={90} endAngle={-270}><RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} dataKey="value" cornerRadius={10} /></RadialBarChart></ResponsiveContainer></div>
-                    <span className="text-4xl font-black">{alignmentPercent}%</span>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-white/[0.05]"><h3 className="text-white text-sm font-bold flex items-center gap-2 mb-1"><CircleDollarSign size={14} className="text-emerald-400"/> Est. Salary</h3><p className="text-2xl font-black text-emerald-400">{formattedSalary}</p></div>
-              </div>
+              
             </div>
           </div>
 
