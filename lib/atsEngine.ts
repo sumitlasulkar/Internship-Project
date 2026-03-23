@@ -9,60 +9,66 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
   if (!userData) return { gScore, mScore, suggestions, missing, heatmap };
 
   // ==========================================
-  // 1. DYNAMIC PROFILE HEALTH LOGIC (gScore)
+  // 1. 100% DYNAMIC BASE HEALTH LOGIC (gScore)
   // ==========================================
   
-  // A. Contact Info (Max 20 Points)
+  // A. Contact & Basic Info (Max 10 Points)
   let contactScore = 0;
-  if (userData.gmail && userData.gmail.trim().length > 3) contactScore += 5;
-  if (userData.linkedin && userData.linkedin.trim().length > 5) contactScore += 10;
-  if (userData.github && userData.github.trim().length > 5) contactScore += 5;
-  
+  if (userData.name && userData.name.trim().length > 2) contactScore += 2.5;
+  if (userData.gmail && userData.gmail.trim().length > 5) contactScore += 2.5;
+  if (userData.linkedin && userData.linkedin.trim().length > 5) contactScore += 2.5;
+  if (userData.github && userData.github.trim().length > 5) contactScore += 2.5;
   gScore += contactScore;
-  if (contactScore < 20) {
-    suggestions.push("Profile Setup: Add missing contact links (LinkedIn, GitHub, Email) to maximize ATS discoverability.");
+
+  if (contactScore < 10) {
+    suggestions.push("Profile Setup: Complete your basic info (Name, Email, LinkedIn, GitHub) for better visibility.");
   }
 
-  // B. Skills Density (Max 40 Points)
-  // Clean up empty skills from the dashboard form
+  // B. Education (Max 15 Points)
+  // Filter out empty templates
+  const validEdu = userData.education?.filter((ed: any) => ed.name && ed.name.trim().length > 2) || [];
+  let eduScore = Math.min(validEdu.length * 15, 15); // Max 15 points if they have at least 1 education
+  gScore += eduScore;
+
+  if (eduScore === 0) {
+    suggestions.push("Education Missing: Add at least 1 education entry (Degree/College) to your profile.");
+  }
+
+  // C. Skills Density (Max 30 Points -> 2 points per skill)
   const skillsArr = userData.skills?.flatMap((s: any) => 
     (s.items || '').split(',')
       .map((i: string) => i.trim().toLowerCase())
-      .filter((i: string) => i.length > 1) // Ignore empty commas
+      .filter((i: string) => i.length > 1) // Ignore empty spaces
   ) || [];
   
   const validSkillsCount = skillsArr.length;
+  let skillScore = Math.min(validSkillsCount * 2, 30); // 15 skills * 2 pts = 30 max
+  gScore += skillScore;
 
-  // Incremental scoring for skills
-  if (validSkillsCount >= 15) gScore += 40;
-  else if (validSkillsCount >= 10) gScore += 30;
-  else if (validSkillsCount >= 5) gScore += 20;
-  else if (validSkillsCount > 0) gScore += 10;
-
-  if (validSkillsCount < 12) {
-    suggestions.push(`Skill Density Low: You only have ${validSkillsCount} valid skills listed. Aim for 12-15 core technical skills.`);
+  if (validSkillsCount < 15) {
+    suggestions.push(`Skill Density: You have ${validSkillsCount}/15 recommended skills. Add ${15 - validSkillsCount} more to max out this section.`);
   }
 
-  // C. Experience & Projects (Max 40 Points)
-  let expScore = 0;
-  
-  // Filter out empty templates from the dashboard
+  // D. Projects (Max 25 Points -> 12.5 points per project)
   const validProjects = userData.projects?.filter((p: any) => p.name && p.name.trim().length > 2) || [];
+  let projScore = Math.min(validProjects.length * 12.5, 25); 
+  gScore += projScore;
+
+  if (validProjects.length < 2) {
+    suggestions.push(`Projects: You only have ${validProjects.length} project(s). Add at least ${2 - validProjects.length} more detailed project to boost your score.`);
+  }
+
+  // E. Experience (Max 20 Points -> 10 points per experience)
   const validExp = userData.experiences?.filter((e: any) => e.name && e.name.trim().length > 2) || [];
-
-  expScore += (validProjects.length * 10); // +10 pts per project
-  expScore += (validExp.length * 15);      // +15 pts per experience
-
-  if (expScore > 40) expScore = 40; // Cap at 40 points
+  let expScore = Math.min(validExp.length * 10, 20);
   gScore += expScore;
 
-  if (validProjects.length === 0 && validExp.length === 0) {
-    suggestions.push("Experience Gap: Add at least 1 professional role or 2 detailed projects to boost your baseline score.");
-  } else if (expScore < 30) {
-    suggestions.push("Strengthen Portfolio: Add more descriptive projects or work experiences to hit a 100% Base Health score.");
+  if (validExp.length === 0) {
+    suggestions.push("Experience: Add at least 1-2 professional roles or internships to hit a 100% score.");
   }
 
-  // Safety cap for Base Health
+  // Round final gScore so UI gets clean numbers (e.g., 87% instead of 87.5%)
+  gScore = Math.round(gScore);
   if (gScore > 100) gScore = 100;
 
   // ==========================================
@@ -81,12 +87,12 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
       'needs', 'help', 'part', 'time', 'fast', 'slow', 'hard', 'easy'
     ]);
 
-    // Format Resume Pool: Replace symbols with spaces EXCEPT for +, #, and . (Saves C++, C#, Node.js)
+    // Format Resume Pool
     const rawResumeText = [
       userData.tagline, userData.aboutIntro, ...skillsArr,
       ...(validProjects.map((p: any) => `${p.name} ${p.description} ${p.techStack} ${p.note}`)),
       ...(validExp.map((e: any) => `${e.name} ${e.description} ${e.note}`)),
-      ...(userData.education?.map((ed: any) => `${ed.name} ${ed.note} ${ed.college}`) || [])
+      ...(validEdu.map((ed: any) => `${ed.name} ${ed.note} ${ed.college}`))
     ].join(' ').toLowerCase();
 
     // Pad with spaces for Exact Word Boundary matching
@@ -103,7 +109,7 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
        }
     });
 
-    // Sort keywords by frequency (Most repeated words = Core requirements)
+    // Sort keywords by frequency
     const sortedKeywords = Object.keys(wordCounts).sort((a, b) => wordCounts[b] - wordCounts[a]);
     
     // Benchmark against Top 25 keywords
@@ -123,10 +129,9 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
     // Calculate Match Score
     mScore = targetKeywords.length > 0 ? Math.round((matchedKeywords.length / targetKeywords.length) * 100) : 0;
     
-    // Populate UI Data structures
     missing.push(...missingKeywords.slice(0, 15));
 
-    // 📊 Real-time Heatmap Data (Top 12 keywords for the grid UI)
+    // 📊 Real-time Heatmap Data
     targetKeywords.slice(0, 12).forEach(word => {
         heatmap.push({
             word: word,
@@ -144,13 +149,11 @@ export const analyzeATS = (userData: any, jobDesc: string) => {
         suggestions.push(`NLP Tip: Replace weak verbs like "${foundWeakVerbs.slice(0,2).join(', ')}" with strong action verbs like "Architected", "Spearheaded", or "Optimized".`);
     }
 
-    // Check for quantifiable metrics (numbers/percentages)
     const hasMetrics = /\d|%/.test(rawResumeText);
     if (!hasMetrics) {
         suggestions.push(`NLP Tip: Your profile lacks quantifiable metrics. ATS algorithms heavily favor data-backed achievements (e.g., "Increased efficiency by 20%").`);
     }
     
-    // Check Degree Requirements
     if ((jobDesc.toLowerCase().includes('bachelor') || jobDesc.toLowerCase().includes('degree')) && !rawResumeText.includes('bachelor') && !rawResumeText.includes('b.tech') && !rawResumeText.includes('degree')) {
         suggestions.push(`Education Alert: The JD mentions a degree requirement. Ensure your education section clearly lists your qualifications.`);
     }
