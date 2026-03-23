@@ -9,7 +9,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useReactToPrint } from 'react-to-print';
 import { ResumeView } from '@/components/ResumeView';
 import { useRouter } from 'next/navigation';
-
+import AIClone from "../AIClone.tsx/page";
+import { data } from "framer-motion/client";
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -505,6 +506,15 @@ export default function Dashboard() {
 
         </div>
       </div>
+
+      {/* ... Baki saara code (Contacts, Experience, etc.) ... */}
+      
+      {/* 🤖 THE ULTIMATE FLEX: AI CLONE WIDGET */}
+      <AIClone userName={data?.name} />
+
+      
+  
+      
       <Footer />
     </>
   );
