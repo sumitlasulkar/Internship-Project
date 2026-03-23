@@ -199,9 +199,15 @@ export default function NeuralSyncOS() {
                                                 <span className={`text-[11px] font-bold tracking-wider truncate transition-all duration-300 ${isActive ? 'text-cyan-100' : 'text-zinc-500 group-hover:text-zinc-300 group-hover:translate-x-1'}`}>{session.title}</span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2 z-10">
-                                            <Edit3 size={13} className="text-zinc-500 hover:text-cyan-400 transition-colors" onClick={(e) => startRename(session.id, session.title, e)} />
-                                            <Trash2 size={13} className="text-zinc-500 hover:text-red-500 transition-colors" onClick={(e) => deleteSession(session.id, e)} />
+                                        
+                                        {/* 🔥 FIX: Changed opacity classes for mobile visibility */}
+                                        <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-2 z-10">
+                                            <button onClick={(e) => startRename(session.id, session.title, e)} className="p-1.5 text-zinc-500 hover:text-cyan-400 hover:bg-white/[0.05] rounded-md transition-colors">
+                                                <Edit3 size={14} />
+                                            </button>
+                                            <button onClick={(e) => deleteSession(session.id, e)} className="p-1.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors">
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </motion.div>
                                 )
@@ -246,7 +252,7 @@ export default function NeuralSyncOS() {
                                         key={i}
                                         initial={{ opacity: 0, y: 30, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        transition={{ ...bubbleSpring, delay: i * 0.02 }} // Staggered entry
+                                        transition={{ ...bubbleSpring, delay: i * 0.02 }}
                                         className={`flex gap-4 md:gap-6 ${m.role === 'user' ? 'flex-row-reverse' : 'justify-start'}`}
                                     >
                                         {/* Avatar Icon */}
