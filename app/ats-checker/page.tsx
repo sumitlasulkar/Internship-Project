@@ -39,7 +39,7 @@ const CircularProgress = ({ value, title, subtitle, colorClass, shadowClass, gra
         </svg>
         <div className="absolute flex flex-col items-center justify-center text-center">
           <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className={`text-4xl font-black italic tracking-tighter ${colorClass}`}>
-            {value}%
+            {value || 0}%
           </motion.span>
         </div>
       </div>
@@ -59,7 +59,7 @@ export default function ATSCheckerPage() {
   const [mounted, setMounted] = useState(false);
   const [scanStep, setScanStep] = useState(0);
 
-  // Frontend-side Smart Logic: Basic Text Analytics
+  // Basic word count for validation
   const wordCount = jobDesc.trim().split(/\s+/).filter(w => w.length > 0).length;
 
   useEffect(() => {
@@ -73,16 +73,16 @@ export default function ATSCheckerPage() {
     return () => unsubscribe();
   }, []);
 
-  const result = analyzeATS(userData, jobDesc.trim()); // Trimmed for cleaner backend logic
+  // Engine runs continuously to provide Base Health immediately
+  const result = analyzeATS(userData, jobDesc.trim()); 
 
   const startScan = () => {
-    if (!jobDesc || wordCount < 10) return alert("Please enter a valid Job Description (min 10 words)!");
+    if (!jobDesc || wordCount < 10) return alert("Please enter a valid Job Description (min 10 words) to run Match Index scan!");
     
     setIsScanning(true);
     setShowResults(false);
     setScanStep(0);
 
-    // Simulated Smart NLP Sequence for UI
     const steps = [
       "Tokenizing Job Description...",
       "Extracting Keyword Vectors...",
@@ -97,7 +97,7 @@ export default function ATSCheckerPage() {
       if (currentStep < steps.length) {
         setScanStep(currentStep);
       }
-    }, 600); // Update text every 600ms
+    }, 600);
 
     setTimeout(() => {
       clearInterval(interval);
@@ -145,26 +145,22 @@ export default function ATSCheckerPage() {
               ATS_OPTIMIZER<span className="text-fuchsia-500">.</span>
             </h1>
             <p className="text-zinc-400 text-sm md:text-base font-medium max-w-xl">
-              Paste a Job Description below. Our intelligent engine will parse the semantic requirements and benchmark your live profile against the industry standard.
+              Monitor your Base Profile Health instantly. Paste a target Job Description to benchmark your skills and unlock the Match Index.
             </p>
           </div>
 
-          {/* Quick Header Stats (Visible only when results are shown) */}
-          <AnimatePresence>
-            {showResults && (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-8 bg-black/40 p-6 rounded-3xl border border-white/5 shadow-inner">
-                 <div className="text-center">
-                    <div className="text-4xl font-black italic text-violet-400">{result.gScore}%</div>
-                    <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Base Health</p>
-                 </div>
-                 <div className="w-px bg-white/10" />
-                 <div className="text-center">
-                    <div className="text-4xl font-black italic text-fuchsia-400">{result.mScore}%</div>
-                    <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Match Index</p>
-                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Quick Header Stats (ALWAYS VISIBLE NOW) */}
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-6 md:gap-8 bg-black/40 p-6 rounded-3xl border border-white/5 shadow-inner">
+              <div className="text-center">
+                <div className="text-4xl font-black italic text-violet-400">{result.gScore || 0}%</div>
+                <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Base Health</p>
+              </div>
+              <div className="w-px bg-white/10" />
+              <div className="text-center">
+                <div className="text-4xl font-black italic text-fuchsia-400">{showResults ? result.mScore : '--'}%</div>
+                <p className="text-[9px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Match Index</p>
+              </div>
+          </motion.div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -185,7 +181,7 @@ export default function ATSCheckerPage() {
               
               <textarea 
                 value={jobDesc} onChange={(e) => setJobDesc(e.target.value)}
-                placeholder="Paste the target Job Description here to analyze..."
+                placeholder="Paste the target Job Description here to unlock the Match Index..."
                 className="w-full h-80 md:h-96 bg-black/50 p-6 rounded-2xl border border-white/[0.05] text-zinc-100 focus:border-fuchsia-500/50 focus:ring-4 focus:ring-fuchsia-500/10 outline-none transition-all font-mono text-sm leading-relaxed shadow-inner placeholder-zinc-700 custom-scrollbar"
               />
               
@@ -242,15 +238,16 @@ export default function ATSCheckerPage() {
                      </AnimatePresence>
                    </div>
                    
-                   {/* Fake progress bar */}
                    <div className="w-64 h-1.5 bg-zinc-900 rounded-full mt-6 overflow-hidden border border-white/5">
                      <motion.div initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 3.2, ease: "linear" }} className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500" />
                    </div>
                 </motion.div>
               ) : showResults ? (
+                // ==========================================
+                // SCANNED RESULTS VIEW
+                // ==========================================
                 <motion.div key="res" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 h-full">
                   
-                  {/* FEATURE: COOL CIRCULAR GRAPHS */}
                   <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl flex justify-around items-center">
                     <CircularProgress 
                       value={result.gScore} title="Base Health" subtitle="Profile Quality"
@@ -265,7 +262,6 @@ export default function ATSCheckerPage() {
                     />
                   </div>
 
-                  {/* COMPARISON BARS */}
                   <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
                      <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-white/[0.05] pb-4">
                         <BarChart3 className="w-4 h-4 text-cyan-400" /> Comparison Analytics
@@ -288,7 +284,6 @@ export default function ATSCheckerPage() {
                      </div>
                   </div>
 
-                  {/* MISSING KEYWORDS (RED PILLS) */}
                   {result.missing.length > 0 && (
                     <div className="bg-white/[0.02] p-8 rounded-3xl border border-red-500/20 backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.05)]">
                        <h3 className="text-red-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2">
@@ -304,7 +299,6 @@ export default function ATSCheckerPage() {
                     </div>
                   )}
 
-                  {/* SMART SUGGESTIONS */}
                   <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
                      <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-white/[0.05] pb-4">
                        <Shield className="w-4 h-4 text-yellow-400" /> Actionable Insights
@@ -321,10 +315,47 @@ export default function ATSCheckerPage() {
 
                 </motion.div>
               ) : (
-                <div className="h-full border-2 border-dashed border-white/[0.05] rounded-3xl flex flex-col items-center justify-center p-12 min-h-[500px] text-center bg-white/[0.01]">
-                  <Target className="w-20 h-20 mb-6 opacity-20 animate-pulse text-fuchsia-500" />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500 leading-loose">AWAITING_PAYLOAD<br/><span className="text-zinc-700">[ TARGET_DATA_MISSING ]</span></p>
-                </div>
+                // ==========================================
+                // INITIAL DEFAULT VIEW (BEFORE JD PASTE)
+                // ==========================================
+                <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full bg-white/[0.02] rounded-3xl border border-white/[0.05] p-8 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center">
+                  <div className="mb-10">
+                    <CircularProgress 
+                      value={result.gScore || 0} title="Base Health" subtitle="Profile Quality"
+                      colorClass="text-violet-400" shadowClass="shadow-[0_0_30px_rgba(139,92,246,0.2)]"
+                      gradientId="gradHealthInitial" fromColor="#a78bfa" toColor="#8b5cf6"
+                    />
+                  </div>
+
+                  <div className="w-full max-w-md text-left space-y-4">
+                    <h3 className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest border-b border-white/[0.05] pb-4 flex items-center gap-2 mb-4">
+                      <Shield className="w-4 h-4 text-violet-400" /> Initial Profile Diagnostics
+                    </h3>
+                    
+                    {result.suggestions?.length > 0 ? (
+                      <div className="space-y-3">
+                        {result.suggestions.map((s: string, i: number) => (
+                          <div key={i} className="flex gap-4 items-start bg-black/40 p-5 rounded-2xl border border-white/[0.03] text-[11px] text-zinc-400 shadow-inner">
+                            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0 shadow-[0_0_8px_#8b5cf6]" />
+                            <p>{s}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-2xl text-center">
+                        <p className="text-[11px] text-green-400 font-bold tracking-wider">
+                          Base profile is perfectly optimized! Ready for JD matching.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-12 p-5 border border-dashed border-white/10 rounded-2xl bg-white/[0.01] w-full max-w-md">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center gap-2">
+                      <Target className="w-4 h-4 text-fuchsia-500/50" /> Paste Job Description to unlock Match Index
+                    </p>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
