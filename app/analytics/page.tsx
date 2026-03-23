@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -98,10 +98,8 @@ export default function AnalyticsPage() {
   const projectedAddedScore = (targetSkills * 3) + (targetProjects * 20) + (targetExp * 25);
   const targetTotalScore = currentScore + projectedAddedScore;
   
-  // The active score dictating the UI (Current vs Simulated)
   const activeScore = isPredicted ? targetTotalScore : currentScore;
 
-  // Leveling System
   const getLevelInfo = (score: number) => {
     if (score < 120) return { level: 'Beginner', next: 'Moderate', target: 120, color: '#f43f5e', progress: (score / 120) * 100 };
     if (score < 220) return { level: 'Moderate', next: 'Pro', target: 220, color: '#06b6d4', progress: ((score - 120) / 100) * 100 };
@@ -117,33 +115,70 @@ export default function AnalyticsPage() {
     { name: 'Skills', value: Math.ceil(pointsToNextLevel / 3), color: '#f97316' },
   ];
 
-  // 🔴 3. NEW FEATURES DATA GENERATION 🔴
+  // 🔴 3. 100% REALISTIC DYNAMIC FEATURES 🔴
   
-  // Feature 1: Tech Mastery Radar
-  const techRadarData = [
-    { domain: 'Frontend', score: Math.min(100, 30 + (activeScore * 0.25)) },
-    { domain: 'Backend', score: Math.min(100, 20 + (activeScore * 0.22)) },
-    { domain: 'Database', score: Math.min(100, 25 + (activeScore * 0.20)) },
-    { domain: 'DevOps', score: Math.min(100, 10 + (activeScore * 0.15)) },
-    { domain: 'System Design', score: Math.min(100, 5 + (activeScore * 0.18)) },
-  ];
+  // 1. DYNAMIC Tech Mastery Radar (Fetches real categories from user profile)
+  const techRadarData = useMemo(() => {
+    if (!userData?.skills || userData.skills.length === 0) {
+      // Default empty radar if no skills added yet
+      return [
+        { domain: 'Frontend', score: 0 }, { domain: 'Backend', score: 0 },
+        { domain: 'Database', score: 0 }, { domain: 'Tools', score: 0 }
+      ];
+    }
+    
+    // Map through actual Firebase skills
+    const mappedSkills = userData.skills.map((skillGroup: any) => {
+      const itemsCount = skillGroup.items ? skillGroup.items.split(',').length : 0;
+      // Let's assume 8 skills in one category = 100% mastery for that category
+      let score = (itemsCount / 8) * 100;
+      
+      // If predicting, distribute the "targetSkills" boost evenly across existing domains
+      if (isPredicted && targetSkills > 0) {
+        score += (targetSkills / userData.skills.length) * (100 / 8); 
+      }
+      return { 
+        domain: skillGroup.category.length > 10 ? skillGroup.category.substring(0, 10) + '..' : skillGroup.category, 
+        score: Math.min(Math.round(score), 100) 
+      };
+    });
 
-  // Feature 2: Market Value Predictor
-  const estimatedSalary = 40000 + (activeScore * 350);
-  const formattedSalary = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(estimatedSalary);
+    // Radar looks best with 3 to 6 axes.
+    return mappedSkills.slice(0, 6);
+  }, [userData, isPredicted, targetSkills]);
 
-  // Feature 3: Silicon Valley Alignment
-  const alignmentPercent = Math.min(99, Math.round((activeScore / 300) * 100) + 5);
+  // 2. STRICT Silicon Valley Alignment (No fake boosts)
+  const alignmentPercent = useMemo(() => {
+    let pCount = currentProjectsCount + (isPredicted ? targetProjects : 0);
+    let eCount = currentExpCount + (isPredicted ? targetExp : 0);
+    let sCount = currentSkillsCount + (isPredicted ? targetSkills : 0);
+
+    // Strict requirements for 100% FAANG match: 5 Projects (40%), 3 Exp (30%), 20 Skills (30%)
+    const projMatch = Math.min((pCount / 5) * 40, 40); 
+    const expMatch = Math.min((eCount / 3) * 30, 30);  
+    const skillMatch = Math.min((sCount / 20) * 30, 30); 
+
+    return Math.round(projMatch + expMatch + skillMatch);
+  }, [currentProjectsCount, currentExpCount, currentSkillsCount, isPredicted, targetProjects, targetExp, targetSkills]);
+
   const radialData = [{ name: 'Alignment', value: alignmentPercent, fill: isPredicted ? '#8b5cf6' : '#06b6d4' }];
 
-  // Feature 4: AI Next Best Action
+  // 3. REALISTIC Market Value Predictor
+  // 0 score = $0 base. Grows realistically up to $120k+ at max score.
+  const estimatedSalary = activeScore === 0 ? 0 : 15000 + (activeScore * 350);
+  const formattedSalary = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(estimatedSalary);
+
+  // 4. AI Insights based on real gaps
   const getAIRecommendation = () => {
-    if (activeScore < 120) return "Focus on building 2 full-stack projects to establish a strong baseline.";
-    if (activeScore < 220) return "Diversify your tech stack. Adding DevOps or Cloud certs will maximize your ROI.";
-    return "You are in the elite tier. Focus on System Architecture and Open Source contributions.";
+    if (alignmentPercent === 0) return "Profile empty. Start by adding your first project and core skills.";
+    if (currentProjectsCount < 2) return "Your portfolio lacks depth. Build and add 2 major full-stack projects.";
+    if (currentExpCount === 0) return "You have projects, but lack certified experience. Hunt for internships or cloud certs.";
+    if (alignmentPercent < 80) return "Solid base. Diversify your tech stack domains to increase market alignment.";
+    return "Top tier profile. Focus on System Architecture and Open Source contributions now.";
   };
 
-  // 🔴 4. AUTO-PILOT & GRAPH LOGIC
+
+  // 🔴 4. AUTO-PILOT & GRAPH LOGIC (UNTOUCHED)
   const handleSetGoal = () => {
     const goal = parseInt(customGoal);
     if (isNaN(goal) || goal <= currentScore) {
@@ -152,7 +187,6 @@ export default function AnalyticsPage() {
       return;
     }
     let gap = goal - currentScore;
-    
     let exp = Math.floor(gap / 25);
     if(exp > 5) exp = 5; 
     gap -= exp * 25;
@@ -181,7 +215,8 @@ export default function AnalyticsPage() {
     for (let i = 5; i > 0; i--) {
       let mIdx = (currentMonthIdx - i + 12) % 12;
       tempScore += Math.floor(Math.random() * 10) + 5;
-      dataPoints.push({ month: monthNames[mIdx], actual: tempScore, predicted: null });
+      if (tempScore > currentScore) tempScore = currentScore - 5; // keep past logical
+      dataPoints.push({ month: monthNames[mIdx], actual: tempScore < 0 ? 0 : tempScore, predicted: null });
     }
     
     dataPoints.push({ month: monthNames[currentMonthIdx], actual: currentScore, predicted: currentScore });
@@ -212,7 +247,6 @@ export default function AnalyticsPage() {
   const runSimulation = (exp=targetExp, proj=targetProjects, skills=targetSkills) => {
     setIsSimulating(true);
     const specificAddedScore = (skills * 3) + (proj * 20) + (exp * 25);
-    
     setTimeout(() => {
       setChartData(generateData(true, specificAddedScore));
       setIsPredicted(true);
@@ -276,7 +310,7 @@ export default function AnalyticsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* --- LEFT COLUMN: MAIN GRAPHS (8 cols) --- */}
+          {/* --- LEFT COLUMN: MAIN GRAPHS --- */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             
             {/* 1. Main Growth Curve */}
@@ -325,28 +359,32 @@ export default function AnalyticsPage() {
             {/* NEW ROW: Tech Mastery & Market Value */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* 🔴 NEW FEATURE 1: TECH MASTERY RADAR 🔴 */}
+              {/* 🔴 STRICT DYNAMIC RADAR 🔴 */}
               <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{...springConfig, delay: 0.1}} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col">
                  <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-2"><RadarIcon size={16} className={isPredicted ? "text-indigo-400" : "text-cyan-400"}/> Domain Mastery</h3>
-                 <p className="text-zinc-500 text-[10px] mb-4 uppercase tracking-widest font-bold">Skill spread analysis</p>
+                 <p className="text-zinc-500 text-[10px] mb-4 uppercase tracking-widest font-bold">Based on live profile skills</p>
                  <div className="w-full h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={techRadarData}>
-                        <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                        <PolarAngleAxis dataKey="domain" tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: 600 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar name="Mastery" dataKey="score" stroke={isPredicted ? "#8b5cf6" : "#06b6d4"} strokeWidth={2} fill={isPredicted ? "#8b5cf6" : "#06b6d4"} fillOpacity={0.4} />
-                      </RadarChart>
+                      {techRadarData.length > 0 ? (
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={techRadarData}>
+                          <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                          <PolarAngleAxis dataKey="domain" tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: 600 }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                          <Radar name="Mastery" dataKey="score" stroke={isPredicted ? "#8b5cf6" : "#06b6d4"} strokeWidth={2} fill={isPredicted ? "#8b5cf6" : "#06b6d4"} fillOpacity={0.4} />
+                        </RadarChart>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No skills data available</div>
+                      )}
                     </ResponsiveContainer>
                  </div>
               </motion.div>
 
-              {/* 🔴 NEW FEATURE 2 & 3: ALIGNMENT & SALARY PREDICTOR 🔴 */}
+              {/* 🔴 STRICT ALIGNMENT & SALARY 🔴 */}
               <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg flex flex-col justify-between">
                 
                 <div>
                   <h3 className="text-white text-sm font-bold flex items-center gap-2 mb-2"><Compass size={16} className={isPredicted ? "text-indigo-400" : "text-cyan-400"}/> Silicon Valley Alignment</h3>
-                  <p className="text-zinc-500 text-[10px] mb-2 uppercase tracking-widest font-bold">Industry standard match</p>
+                  <p className="text-zinc-500 text-[10px] mb-2 uppercase tracking-widest font-bold">Strict FAANG criteria match</p>
                   
                   <div className="flex items-center gap-4 h-[100px]">
                     <div className="w-[100px] h-[100px]">
@@ -359,7 +397,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div>
                       <motion.span key={alignmentPercent} initial={{ scale: 0.5 }} animate={{ scale: 1 }} className={`text-4xl font-black ${isPredicted ? 'text-indigo-400' : 'text-cyan-400'}`}>{alignmentPercent}%</motion.span>
-                      <p className="text-zinc-400 text-xs font-medium">Match with FAANG criteria</p>
+                      <p className="text-zinc-400 text-xs font-medium">Industry Match</p>
                     </div>
                   </div>
                 </div>
@@ -373,13 +411,11 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: SIMULATION CONTROLS & AI INSIGHTS (4 cols) --- */}
+          {/* --- RIGHT COLUMN: CONTROLS --- */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             
-            {/* Scenario Builder */}
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={springConfig} className="bg-[#0A0A0A] border border-white/[0.05] rounded-[2rem] p-6 relative shadow-2xl flex flex-col">
               
-              {/* Auto-Pilot Goal Setter */}
               <div className="mb-6 pb-6 border-b border-white/[0.05]">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-3">
                   <Crosshair size={14} className="text-rose-500" /> Auto-Pilot Goal
@@ -399,15 +435,15 @@ export default function AnalyticsPage() {
 
               <div className="space-y-6 flex-1">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Code size={10} className="inline mr-1"/> Target Skills</label><span className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetSkills}</span></div>
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Code size={10} className="inline mr-1"/> Target Skills</label><motion.span key={targetSkills} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetSkills}</motion.span></div>
                   <input type="range" min="0" max="20" value={targetSkills} onChange={(e) => { setTargetSkills(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Briefcase size={10} className="inline mr-1"/> Target Projects</label><span className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetProjects}</span></div>
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><Briefcase size={10} className="inline mr-1"/> Target Projects</label><motion.span key={targetProjects} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetProjects}</motion.span></div>
                   <input type="range" min="0" max="10" value={targetProjects} onChange={(e) => { setTargetProjects(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><GraduationCap size={10} className="inline mr-1"/> Target Exp/Certs</label><span className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetExp}</span></div>
+                  <div className="flex justify-between items-center"><label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider"><GraduationCap size={10} className="inline mr-1"/> Target Exp/Certs</label><motion.span key={targetExp} animate={{ scale: [1.2, 1] }} className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-mono text-white">{targetExp}</motion.span></div>
                   <input type="range" min="0" max="5" value={targetExp} onChange={(e) => { setTargetExp(Number(e.target.value)); setIsPredicted(false); }} className="w-full accent-cyan-500 h-1 bg-white/[0.05] rounded-lg appearance-none cursor-pointer" />
                 </div>
               </div>
@@ -417,7 +453,6 @@ export default function AnalyticsPage() {
               </motion.button>
             </motion.div>
 
-            {/* 🔴 NEW FEATURE 4: AI ACTIONABLE INSIGHTS 🔴 */}
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{...springConfig, delay: 0.2}} className="bg-gradient-to-br from-indigo-900/20 to-black border border-indigo-500/20 rounded-[2rem] p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)]">
                <h3 className="text-indigo-400 text-sm font-bold flex items-center gap-2 mb-3"><BotMessageSquare size={16} /> AI Next Best Action</h3>
                <p className="text-zinc-300 text-xs leading-relaxed italic border-l-2 border-indigo-500 pl-3">
