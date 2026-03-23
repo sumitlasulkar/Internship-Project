@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import styles from "./t1.module.css";
 import { ArrowRight, Download, Github, Linkedin, Mail, MapPin, Youtube } from 'lucide-react';
+import AIClone from '@/app/AIClone.tsx/page';
 
 interface Skill { category: string; items: string; }
 interface ExperienceItem { name: string; description: string; issuedBy: string; note: string; }
@@ -294,9 +295,15 @@ export default function TemplateOne({ data }: { data: PortfolioData }) {
         </motion.div>
       </section>
 
+      {/* ... Baki saara code (Contacts, Experience, etc.) ... */}
+      
+      {/* 🤖 THE ULTIMATE FLEX: AI CLONE WIDGET */}
+      <AIClone userName={data?.name} />
+
       {/* FOOTER */}
       <footer className={styles.footer}>
-        <p>Copyright © || All Rights Reserved || <span className={styles.highlight}>{data?.name || "Your Name"}</span></p>
+        <p>Engineered & Built by <span className={styles.highlight}>{data?.name || "You"}</span></p>
+        <p className={styles.footer_copy}>© {new Date().getFullYear()} All Rights Reserved.</p>
       </footer>
     </div>
   );
