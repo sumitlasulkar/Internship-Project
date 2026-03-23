@@ -4,7 +4,7 @@ import { db, auth } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion'; 
-import { Zap, Shield, Target, Cpu, Search, Activity, LayoutGrid, BarChart3, AlertTriangle, CheckCircle2, FileText, Crosshair } from 'lucide-react';
+import { Zap, Shield, Target, Cpu, Search, Activity, LayoutGrid, BarChart3, AlertTriangle, CheckCircle2, FileText, Crosshair, TrendingUp } from 'lucide-react';
 import Header from '../Home/header';
 import Footer from '../Home/Footer';
 import { analyzeATS } from '@/lib/atsEngine';
@@ -59,7 +59,6 @@ export default function ATSCheckerPage() {
   const [mounted, setMounted] = useState(false);
   const [scanStep, setScanStep] = useState(0);
 
-  // Basic word count for validation
   const wordCount = jobDesc.trim().split(/\s+/).filter(w => w.length > 0).length;
 
   useEffect(() => {
@@ -73,7 +72,6 @@ export default function ATSCheckerPage() {
     return () => unsubscribe();
   }, []);
 
-  // Engine runs continuously to provide Base Health immediately
   const result = analyzeATS(userData, jobDesc.trim()); 
 
   const startScan = () => {
@@ -119,12 +117,10 @@ export default function ATSCheckerPage() {
   return (
     <div className="min-h-screen bg-[#030014] text-white selection:bg-fuchsia-600/30 overflow-x-hidden relative font-sans">
       
-      {/* 🚀 STICKY HEADER SECTION */}
       <div className="fixed top-0 left-0 w-full z-[100] bg-[#030014]/80 backdrop-blur-xl border-b border-white/[0.05]">
         <Header />
       </div>
       
-      {/* Background Ambience */}
       <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000" />
       <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000 delay-500" />
       
@@ -134,7 +130,6 @@ export default function ATSCheckerPage() {
 
       <main className="max-w-7xl mx-auto p-4 md:p-10 pt-32 md:pt-40 space-y-10 relative z-10">
         
-        {/* --- HEADER --- */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/[0.02] p-8 md:p-12 rounded-3xl border border-white/[0.08] backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
           <div className="space-y-3 text-center md:text-left">
             <div className="flex items-center gap-3 justify-center md:justify-start text-fuchsia-400">
@@ -149,7 +144,6 @@ export default function ATSCheckerPage() {
             </p>
           </div>
 
-          {/* Quick Header Stats (ALWAYS VISIBLE NOW) */}
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-6 md:gap-8 bg-black/40 p-6 rounded-3xl border border-white/5 shadow-inner">
               <div className="text-center">
                 <div className="text-4xl font-black italic text-violet-400">{result.gScore || 0}%</div>
@@ -165,10 +159,7 @@ export default function ATSCheckerPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* --- LEFT COLUMN: INPUT & HEATMAP --- */}
           <div className="lg:col-span-7 space-y-8">
-            
-            {/* INPUT BOX */}
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl group h-fit shadow-2xl">
               <div className="flex justify-between items-end mb-6">
                 <h2 className="text-zinc-400 font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
@@ -195,7 +186,6 @@ export default function ATSCheckerPage() {
               </motion.button>
             </motion.div>
 
-            {/* 🔥 REAL-TIME SKILL GAP HEATMAP */}
             <AnimatePresence>
                 {showResults && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl">
@@ -215,7 +205,6 @@ export default function ATSCheckerPage() {
             </AnimatePresence>
           </div>
 
-          {/* --- RIGHT COLUMN: GRAPHS & RESULTS --- */}
           <div className="lg:col-span-5 space-y-8">
             <AnimatePresence mode="wait">
               {isScanning ? (
@@ -243,9 +232,6 @@ export default function ATSCheckerPage() {
                    </div>
                 </motion.div>
               ) : showResults ? (
-                // ==========================================
-                // SCANNED RESULTS VIEW
-                // ==========================================
                 <motion.div key="res" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 h-full">
                   
                   <div className="bg-white/[0.02] p-8 rounded-3xl border border-white/[0.08] backdrop-blur-xl shadow-2xl flex justify-around items-center">
@@ -315,10 +301,38 @@ export default function ATSCheckerPage() {
 
                 </motion.div>
               ) : (
-                // ==========================================
-                // INITIAL DEFAULT VIEW (BEFORE JD PASTE)
-                // ==========================================
                 <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full bg-white/[0.02] rounded-3xl border border-white/[0.05] p-8 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center">
+                  
+                  {/* --- NEW HEALTH GAUGE --- */}
+                  <div className="w-full mb-10">
+                    <h3 className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 mb-4">
+                      <TrendingUp className="w-4 h-4 text-violet-400" /> Overall Profile Readiness
+                    </h3>
+                    
+                    <div className="relative w-full max-w-sm mx-auto">
+                      <div className="flex justify-between text-[10px] font-bold uppercase mb-2 tracking-widest text-zinc-500">
+                        <span>Needs Work</span>
+                        <span className="text-violet-400">{result.gScore || 0}%</span>
+                        <span>Excellent</span>
+                      </div>
+                      
+                      <div className="w-full bg-black/60 h-4 rounded-full border border-white/5 overflow-hidden shadow-inner flex">
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: `${result.gScore || 0}%` }} 
+                          transition={{ duration: 1.5, ease: "easeOut" }} 
+                          className={`h-full relative ${
+                            (result.gScore || 0) < 50 ? 'bg-gradient-to-r from-red-600 to-orange-500' :
+                            (result.gScore || 0) < 80 ? 'bg-gradient-to-r from-orange-500 to-yellow-400' :
+                            'bg-gradient-to-r from-green-500 to-emerald-400'
+                          }`}
+                        >
+                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="mb-10">
                     <CircularProgress 
                       value={result.gScore || 0} title="Base Health" subtitle="Profile Quality"
