@@ -46,7 +46,7 @@ export const ResumeView = forwardRef<HTMLDivElement, { data: any }>(({ data }, r
             </div>
             <div className="flex justify-between italic text-[10pt] mb-1">
               <span>{exp.description || "Software Engineer Intern"}</span>
-              <span>Pune, India</span>
+           
             </div>
             <ul className="list-disc ml-5 text-[10pt] space-y-1">
               {exp.note && exp.note.split('\n').map((line: string, idx: number) => (
