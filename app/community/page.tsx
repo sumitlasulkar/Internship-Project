@@ -6,7 +6,7 @@ import {
   serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc 
 } from 'firebase/firestore';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Send, MessageSquare, ThumbsUp, UserCircle, Activity, HelpCircle, Flame, ExternalLink, ShieldCheck, Sparkles, Trash2, Folders, Layers, Zap, Orbit, ArrowRight } from 'lucide-react';
+import { Send, MessageSquare, ThumbsUp, UserCircle, Activity, HelpCircle, ShieldCheck, Sparkles, Trash2, Folders, Layers, Zap, Orbit, ArrowRight, Bot } from 'lucide-react';
 import Header from '../Home/header';
 import { useRouter } from 'next/navigation';
 import Footer from '../Home/Footer';
@@ -22,13 +22,11 @@ export default function CommunityPage() {
   const [replyText, setReplyText] = useState("");
   const [subItems, setSubItems] = useState<any[]>([]); 
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAiThinkingId, setIsAiThinkingId] = useState<string | null>(null);
   const router = useRouter();
 
   const springConfig = { type: "spring" as const, stiffness: 300, damping: 30 };
 
-  // --------------------------------------------------------
-  // BACKEND LOGIC - 100% UNTOUCHED
-  // --------------------------------------------------------
   useEffect(() => {
     setHasMounted(true);
     const unsubAuth = auth.onAuthStateChanged((u) => {
@@ -94,6 +92,7 @@ export default function CommunityPage() {
     await updateDoc(itemRef, { likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
   };
 
+  // 🔴 NORMAL USER REPLY
   const handleSubPost = async (itemId: string) => {
     if (!replyText.trim() || !user) return;
     const subColName = activeTab === 'feed' ? 'comments' : 'replies';
@@ -104,6 +103,40 @@ export default function CommunityPage() {
       timestamp: serverTimestamp()
     });
     setReplyText("");
+  };
+
+  // 🔴 EXPLICIT AI REPLY FUNCTION
+  const handleAIRequest = async (item: any) => {
+    const puter = (window as any).puter;
+    if (!puter) {
+        alert("AI System currently offline. Please try again later.");
+        return;
+    }
+
+    const questionToAI = replyText.trim() || "What are your thoughts on this?"; 
+    setReplyText(""); 
+    setIsAiThinkingId(item.id);
+
+    try {
+        const aiResponse = await puter.ai.chat(
+            `You are an expert AI on a professional networking site. 
+            The original post is: "${item.content}".
+            A user is specifically asking you: "${questionToAI}".
+            Provide a helpful, insightful, and professional response in 2-3 sentences.`
+        );
+
+        const subColName = activeTab === 'feed' ? 'comments' : 'replies';
+        await addDoc(collection(db, activeTab === 'feed' ? 'posts' : 'queries', item.id, subColName), {
+            text: aiResponse.toString(),
+            authorName: "AI_System_Core",
+            authorId: "puter-ai-node",
+            timestamp: serverTimestamp(),
+            isBot: true 
+        });
+    } catch (err) {
+        console.error("AI Error:", err);
+    }
+    setIsAiThinkingId(null);
   };
 
   if (!hasMounted) return null;
@@ -118,36 +151,25 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-[#000000] text-zinc-100 font-sans overflow-x-hidden selection:bg-cyan-500/30 relative">
-      
+      <script src="https://js.puter.com/v2/" data-app-id="app-c47a6adf-c207-4978-a180-038223102817" async></script>
+
       {/* 🚀 STICKY HEADER */}
       <div className="fixed top-0 left-0 w-full z-[100] border-b border-white/[0.04] bg-[#000000]/80 backdrop-blur-xl">
         <Header />
       </div>
       
-      {/* 🌌 ULTRA-MINIMAL AMBIENT GLOWS */}
+      {/* 🌌 AMBIENT GLOWS */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <motion.div 
-          animate={{ opacity: [0.03, 0.06, 0.03] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-cyan-600/20 blur-[150px] rounded-full" 
-        />
-        <motion.div 
-          animate={{ opacity: [0.02, 0.05, 0.02] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-600/20 blur-[150px] rounded-full" 
-        />
+        <motion.div animate={{ opacity: [0.03, 0.06, 0.03] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-cyan-600/20 blur-[150px] rounded-full" />
+        <motion.div animate={{ opacity: [0.02, 0.05, 0.02] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-600/20 blur-[150px] rounded-full" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
       </div>
 
       <main className="max-w-7xl mx-auto pt-32 md:pt-40 p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
         
-        {/* --- LEFT NAVIGATION: SLEEK GLASS PANEL --- */}
+        {/* --- LEFT NAVIGATION --- */}
         <div className="lg:col-span-3">
-          <motion.div 
-            initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={springConfig}
-            className="md:sticky md:top-36 space-y-8"
-          >
-            {/* User Profile Card */}
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={springConfig} className="md:sticky md:top-36 space-y-8">
             <div className="bg-[#050505] border border-white/[0.04] rounded-3xl p-8 flex flex-col items-center shadow-2xl relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <motion.div whileHover={{ scale: 1.05 }} className="relative z-10">
@@ -164,7 +186,6 @@ export default function CommunityPage() {
                 </div>
             </div>
             
-            {/* Navigation Tabs */}
             <div className="bg-[#050505] border border-white/[0.04] rounded-3xl p-2 shadow-2xl space-y-1">
                 {[
                   { id: 'feed', icon: Activity, label: 'Main Stream' },
@@ -175,9 +196,7 @@ export default function CommunityPage() {
                     <button 
                       key={tab.id}
                       onClick={() => {setActiveTab(tab.id as any); setOpenItem(null); setIsFilterMyPosts(false);}} 
-                      className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                        isActive ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]'
-                      }`}
+                      className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]'}`}
                     >
                       {isActive && <motion.div layoutId="navTab" className="absolute inset-0 bg-white/[0.08] border border-white/[0.05] rounded-2xl shadow-inner" transition={springConfig} />}
                       <tab.icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-cyan-400' : ''}`} /> 
@@ -189,9 +208,7 @@ export default function CommunityPage() {
                 <div className="pt-4 mt-4 border-t border-white/[0.04]">
                    <button 
                     onClick={() => setIsFilterMyPosts(!isFilterMyPosts)} 
-                    className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                      isFilterMyPosts ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]'
-                    }`}
+                    className={`w-full relative flex items-center gap-4 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${isFilterMyPosts ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]'}`}
                    >
                       {isFilterMyPosts && <motion.div layoutId="navTab" className="absolute inset-0 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shadow-inner" transition={springConfig} />}
                       <Folders className="w-4 h-4 relative z-10" /> 
@@ -202,10 +219,8 @@ export default function CommunityPage() {
           </motion.div>
         </div>
 
-        {/* --- CENTER FEED: MODERN GLASS CARDS --- */}
+        {/* --- CENTER FEED --- */}
         <div className="lg:col-span-6 space-y-8">
-          
-          {/* Input Console */}
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springConfig} className="bg-[#050505] border border-white/[0.04] rounded-3xl p-6 md:p-8 shadow-2xl relative group focus-within:border-cyan-500/30 transition-colors duration-500">
              <div className="flex items-center gap-3 mb-4">
                 <Orbit className="w-4 h-4 text-cyan-500 animate-spin-slow" />
@@ -239,14 +254,12 @@ export default function CommunityPage() {
                       key={item.id} 
                       className="bg-[#050505] border border-white/[0.04] hover:border-white/[0.1] rounded-3xl p-6 md:p-8 transition-all duration-500 shadow-xl relative group"
                     >
-                      {/* Delete Button */}
                       {item.authorId === user?.uid && (
                         <button onClick={() => handleDeleteItem(item.id)} className="absolute top-6 right-6 p-2 text-zinc-600 hover:text-red-400 bg-white/[0.02] hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                            <Trash2 className="w-4 h-4" />
                         </button>
                       )}
 
-                      {/* Header */}
                       <div className="flex items-center gap-4 mb-6">
                           <div className="w-10 h-10 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-xs font-bold text-zinc-400 group-hover:border-cyan-500/30 transition-colors">
                             {item.authorName?.[0]}
@@ -259,38 +272,28 @@ export default function CommunityPage() {
                           </div>
                       </div>
 
-                      {/* Content */}
                       <p className="text-sm text-zinc-300 leading-relaxed mb-8 whitespace-pre-wrap">{item.content}</p>
 
-                      {/* Actions */}
                       <div className="flex gap-6 border-t border-white/[0.04] pt-5">
-                          <motion.button 
-                            whileTap={{ scale: 0.9 }} onClick={() => handleLike(item.id, itemLikes)} 
-                            className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${isLiked ? 'text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                          >
-                              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} /> 
-                              <span>{itemLikes.length}</span>
+                          <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleLike(item.id, itemLikes)} className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${isLiked ? 'text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} /> <span>{itemLikes.length}</span>
                           </motion.button>
-                          
                           <button onClick={() => setOpenItem(openItem === item.id ? null : item.id)} className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${openItem === item.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                              <MessageSquare className="w-4 h-4" /> 
-                              {activeTab === 'feed' ? 'Discuss' : 'Provide Answer'}
+                              <MessageSquare className="w-4 h-4" /> {activeTab === 'feed' ? 'Discuss' : 'Provide Answer'}
                           </button>
                       </div>
 
-                      {/* Comments / Replies Section */}
                       <AnimatePresence>
                         {openItem === item.id && (
-                          <motion.div 
-                            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} 
-                            className="mt-6 pt-6 border-t border-white/[0.04] space-y-4 overflow-hidden"
-                          >
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-6 pt-6 border-t border-white/[0.04] space-y-4 overflow-hidden">
                              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                 {subItems.map((sub, idx) => (
-                                   <motion.div initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.05 }} key={sub.id} className="bg-white/[0.02] p-4 rounded-2xl border border-white/[0.02] flex justify-between items-start hover:bg-white/[0.04] transition-colors group/sub">
+                                   <motion.div initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.05 }} key={sub.id} className={`p-4 rounded-2xl border flex justify-between items-start transition-colors group/sub ${sub.isBot ? 'bg-cyan-500/5 border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.05)]' : 'bg-white/[0.02] border-white/[0.02] hover:bg-white/[0.04]'}`}>
                                       <div className="flex-1">
-                                         <p className="text-[10px] text-zinc-500 font-bold mb-1 uppercase tracking-wider">{sub.authorName}</p>
-                                         <p className="text-xs text-zinc-300 font-medium leading-relaxed">{sub.text}</p>
+                                          <p className={`text-[10px] font-bold mb-1 uppercase tracking-wider flex items-center gap-1.5 ${sub.isBot ? 'text-cyan-400' : 'text-zinc-500'}`}>
+                                            {sub.isBot && <Bot className="w-3 h-3" />} {sub.authorName}
+                                          </p>
+                                          <p className="text-xs text-zinc-300 font-medium leading-relaxed">{sub.text}</p>
                                       </div>
                                       {sub.authorId === user?.uid && (
                                         <button onClick={() => handleDeleteSubItem(item.id, sub.id)} className="text-zinc-600 hover:text-red-400 p-1.5 opacity-0 group-hover/sub:opacity-100 transition-opacity bg-white/[0.02] rounded-md">
@@ -301,13 +304,29 @@ export default function CommunityPage() {
                                 ))}
                              </div>
                              
-                             {/* Reply Input */}
-                             <div className="flex gap-3 items-center bg-black p-1.5 rounded-2xl border border-white/[0.05] focus-within:border-cyan-500/30 transition-colors mt-4 shadow-inner">
-                                <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a response..." className="flex-1 bg-transparent px-4 py-2.5 text-xs outline-none font-medium text-zinc-200 placeholder:text-zinc-600" />
-                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleSubPost(item.id)} className="p-2.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-xl hover:bg-cyan-500 hover:text-white transition-colors">
-                                    <Send className="w-4 h-4" />
-                                </motion.button>
+                             {/* 🔴 DUAL ACTION BUTTONS: USER SEND & ASK AI 🔴 */}
+                             <div className="flex flex-col gap-3 bg-black p-2 rounded-2xl border border-white/[0.05] focus-within:border-cyan-500/30 transition-colors mt-4 shadow-inner">
+                                <input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a response or ask AI..." className="w-full bg-transparent px-3 py-2 text-xs outline-none font-medium text-zinc-200 placeholder:text-zinc-600" />
+                                <div className="flex justify-end gap-2 border-t border-white/[0.05] pt-2">
+                                  <motion.button 
+                                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} 
+                                      onClick={() => handleAIRequest(item)} 
+                                      disabled={isAiThinkingId === item.id}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-500 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                                  >
+                                      <Bot className="w-3.5 h-3.5" /> 
+                                      {isAiThinkingId === item.id ? 'Thinking...' : 'Ask AI'}
+                                  </motion.button>
+                                  <motion.button 
+                                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} 
+                                      onClick={() => handleSubPost(item.id)} 
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg hover:bg-cyan-500 hover:text-black transition-colors text-[10px] font-bold uppercase tracking-wider"
+                                  >
+                                      <Send className="w-3.5 h-3.5" /> Send
+                                  </motion.button>
+                                </div>
                              </div>
+
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -319,7 +338,7 @@ export default function CommunityPage() {
           </LayoutGroup>
         </div>
 
-        {/* --- RIGHT PANEL: DATA STREAM --- */}
+        {/* --- RIGHT PANEL --- */}
         <div className="lg:col-span-3 hidden lg:block space-y-8">
             <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={springConfig} className="bg-[#050505] border border-white/[0.04] rounded-3xl p-8 shadow-2xl md:sticky md:top-40">
                 <h3 className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
@@ -338,11 +357,7 @@ export default function CommunityPage() {
                               <Zap className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                             <div className="w-full h-[2px] bg-white/[0.03] rounded-full overflow-hidden">
-                               <motion.div 
-                                 initial={{ width: "0%" }} animate={{ width: "100%" }} 
-                                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                                 className="h-full bg-gradient-to-r from-transparent via-white/20 to-transparent" 
-                               />
+                               <motion.div initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} className="h-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                             </div>
                         </div>
                     ))}
@@ -353,16 +368,9 @@ export default function CommunityPage() {
       </main>
 
       <style jsx global>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
