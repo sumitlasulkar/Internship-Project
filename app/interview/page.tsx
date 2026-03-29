@@ -5,7 +5,7 @@ import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, Star, RefreshCw, Terminal, BrainCircuit, ArrowLeft, CheckCircle2, Zap, BarChart } from 'lucide-react';
+import { Send, Bot, Star, RefreshCw, Terminal, BrainCircuit, ArrowLeft, CheckCircle2, Zap, BarChart, Briefcase, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 type Difficulty = 'Low' | 'Moderate' | 'Pro';
@@ -24,6 +24,9 @@ export default function InterviewMode() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [questionCount, setQuestionCount] = useState(0);
 
+    // 🔴 NEW: Job Description State
+    const [jobDescription, setJobDescription] = useState("");
+
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -38,7 +41,7 @@ export default function InterviewMode() {
         return () => unsubscribeAuth();
     }, []);
 
-    // 🔴 NEW: SHORT QUESTION GENERATOR BASED ON LEVEL
+    // 🔴 UPDATED: GENERATOR (Checks if JD exists)
     const generateQuestion = async (selectedLevel: Difficulty = difficulty!) => {
         setIsGenerating(true);
         setEvaluation(null);
@@ -47,12 +50,16 @@ export default function InterviewMode() {
         const puter = (window as any).puter;
         const skills = userData?.skills?.map((s: any) => s.category).join(", ") || "General Full Stack";
 
-        // Strict prompt for short, specific questions
+        // Logic: Use JD if provided, else use Profile Skills
+        const contextType = jobDescription.trim() ? "Job Description" : "Candidate Profile";
+        const contextData = jobDescription.trim() ? jobDescription : skills;
+
         const prompt = `
             Act as a Senior Technical Interviewer. 
-            Level: ${selectedLevel} (Low = Basic Syntax, Moderate = Implementation/Logic, Pro = Architecture/Optimization).
-            Tech Context: [${skills}].
-            Ask ONLY ONE short, direct technical interview question (max 15 words). 
+            Level: ${selectedLevel}.
+            Primary Source (${contextType}): [${contextData}].
+            
+            Task: Ask ONLY ONE short, direct technical interview question (max 15 words) based on the requirements in this ${contextType}. 
             Do NOT give problem statements or scenarios. Just a direct question.
         `;
 
@@ -72,7 +79,7 @@ export default function InterviewMode() {
         
         const puter = (window as any).puter;
         const evalPrompt = `
-            Level: ${difficulty}
+            Difficulty: ${difficulty}
             Question: "${currentQuestion}"
             Answer: "${userAnswer}"
             Score this answer (0-100) and give a 1-sentence feedback.
@@ -109,11 +116,27 @@ export default function InterviewMode() {
                 </Link>
 
                 {!difficulty ? (
-                    // 🔴 LEVEL SELECTION UI
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-20">
-                        <h2 className="text-3xl font-medium mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">Select Proficiency Level</h2>
-                        <p className="text-zinc-500 text-sm mb-12 uppercase tracking-widest font-bold">Adjust the interview depth</p>
-                        
+                    // 🔴 UPDATED SELECTION UI
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-10 max-w-2xl mx-auto">
+                        <div className="text-center mb-12">
+                            <h2 className="text-3xl font-medium mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">Interview Configuration</h2>
+                            <p className="text-zinc-500 text-sm uppercase tracking-widest font-bold">Prepare for your next big role</p>
+                        </div>
+
+                        {/* 🔴 NEW: Job Description Input Area */}
+                        <div className="bg-[#050505] border border-white/5 p-6 rounded-[2rem] mb-8 group focus-within:border-indigo-500/30 transition-all">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Briefcase className="text-indigo-400 w-4 h-4" />
+                                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Target Job Description (Optional)</span>
+                            </div>
+                            <textarea 
+                                value={jobDescription}
+                                onChange={(e) => setJobDescription(e.target.value)}
+                                placeholder="Paste the job requirements here to generate targeted questions..."
+                                className="w-full bg-transparent border-none outline-none text-sm text-zinc-300 min-h-[100px] resize-none placeholder:text-zinc-800"
+                            />
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {(['Low', 'Moderate', 'Pro'] as Difficulty[]).map((level) => (
                                 <motion.button
@@ -149,7 +172,9 @@ export default function InterviewMode() {
                                         </div>
                                         <div>
                                             <span className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">{difficulty} Level</span>
-                                            <h2 className="text-lg font-bold text-white">Interview Stream</h2>
+                                            <h2 className="text-lg font-bold text-white">
+                                                {jobDescription.trim() ? "JD Targeting" : "Profile Analysis"}
+                                            </h2>
                                         </div>
                                     </div>
                                     <div className="text-zinc-600 text-[10px] font-black uppercase tracking-widest bg-white/5 px-4 py-1.5 rounded-full border border-white/5">
@@ -214,21 +239,29 @@ export default function InterviewMode() {
                             </AnimatePresence>
                         </div>
 
-                        {/* RIGHT: Profile Context */}
+                        {/* RIGHT: Session Information */}
                         <div className="lg:col-span-4 space-y-6">
                             <div className="bg-[#050505] border border-white/5 rounded-[2rem] p-8">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-6 flex items-center gap-2"><Zap size={14} className="text-indigo-500" /> Session Context</h3>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-6 flex items-center gap-2"><Zap size={14} className="text-indigo-500" /> Session Info</h3>
                                 <div className="space-y-6">
                                     <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                        <span className="text-[9px] text-zinc-500 font-bold uppercase block mb-1">Target Tech</span>
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase block mb-1">
+                                            {jobDescription.trim() ? "Active JD" : "Target Tech"}
+                                        </span>
                                         <div className="flex flex-wrap gap-2 mt-2">
-                                            {userData?.skills?.slice(0, 4).map((s: any, i: number) => (
-                                                <span key={i} className="px-2 py-1 bg-indigo-500/10 text-[9px] font-bold text-indigo-300 rounded-md border border-indigo-500/10">{s.category}</span>
-                                            ))}
+                                            {jobDescription.trim() ? (
+                                                <div className="flex items-center gap-2 text-[9px] font-bold text-indigo-300">
+                                                    <FileText size={12}/> Custom JD Loaded
+                                                </div>
+                                            ) : (
+                                                userData?.skills?.slice(0, 4).map((s: any, i: number) => (
+                                                    <span key={i} className="px-2 py-1 bg-indigo-500/10 text-[9px] font-bold text-indigo-300 rounded-md border border-indigo-500/10">{s.category}</span>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                     <div className="border-t border-white/5 pt-6">
-                                        <button onClick={() => setDifficulty(null)} className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-rose-400 transition-colors">Change Difficulty</button>
+                                        <button onClick={() => { setDifficulty(null); setJobDescription(""); }} className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-rose-400 transition-colors">Reset Session</button>
                                     </div>
                                 </div>
                             </div>
