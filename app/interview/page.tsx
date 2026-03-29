@@ -5,7 +5,7 @@ import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, Star, RefreshCw, Terminal, BrainCircuit, ArrowLeft, CheckCircle2, Zap, BarChart, Briefcase, FileText } from 'lucide-react';
+import { Send, Bot, Star, RefreshCw, Terminal, BrainCircuit, ArrowLeft, CheckCircle2, Zap, BarChart, Briefcase, FileText, Sparkles, Play } from 'lucide-react';
 import Link from 'next/link';
 
 type Difficulty = 'Low' | 'Moderate' | 'Pro';
@@ -24,8 +24,9 @@ export default function InterviewMode() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [questionCount, setQuestionCount] = useState(0);
 
-    // 🔴 NEW: Job Description State
+    // Job Description State
     const [jobDescription, setJobDescription] = useState("");
+    const [isSessionStarted, setIsSessionStarted] = useState(false);
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -41,7 +42,7 @@ export default function InterviewMode() {
         return () => unsubscribeAuth();
     }, []);
 
-    // 🔴 UPDATED: GENERATOR (Checks if JD exists)
+    // 🔴 UPDATED: GENERATOR (Logic is the same, just wrapped in session check)
     const generateQuestion = async (selectedLevel: Difficulty = difficulty!) => {
         setIsGenerating(true);
         setEvaluation(null);
@@ -50,7 +51,6 @@ export default function InterviewMode() {
         const puter = (window as any).puter;
         const skills = userData?.skills?.map((s: any) => s.category).join(", ") || "General Full Stack";
 
-        // Logic: Use JD if provided, else use Profile Skills
         const contextType = jobDescription.trim() ? "Job Description" : "Candidate Profile";
         const contextData = jobDescription.trim() ? jobDescription : skills;
 
@@ -67,6 +67,7 @@ export default function InterviewMode() {
             const response = await puter.ai.chat(prompt);
             setCurrentQuestion(response.toString());
             setQuestionCount(prev => prev + 1);
+            setIsSessionStarted(true); // 🔴 Start the UI transition
         } catch (err) {
             setCurrentQuestion("Error generating question. Try again.");
         }
@@ -102,10 +103,11 @@ export default function InterviewMode() {
         setIsEvaluating(false);
     };
 
-    if (isAuthLoading) return <div className="min-h-screen bg-black flex items-center justify-center text-indigo-500 font-mono">Loading Neural Data...</div>;
+    if (isAuthLoading) return <div className="min-h-screen bg-black flex items-center justify-center text-indigo-500 font-mono tracking-widest animate-pulse">SYNCHRONIZING_NEURAL_DATA...</div>;
 
     return (
         <div className="min-h-screen bg-[#000] text-zinc-100 font-sans p-4 md:p-10 relative overflow-hidden">
+            {/* Ambient Background */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#1e1b4b_0%,transparent_50%)] opacity-30 pointer-events-none" />
 
             <div className="max-w-4xl mx-auto relative z-10">
@@ -115,49 +117,73 @@ export default function InterviewMode() {
                     </motion.button>
                 </Link>
 
-                {!difficulty ? (
-                    // 🔴 UPDATED SELECTION UI
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-10 max-w-2xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl font-medium mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">Interview Configuration</h2>
-                            <p className="text-zinc-500 text-sm uppercase tracking-widest font-bold">Prepare for your next big role</p>
+                {!isSessionStarted ? (
+                    // 🔴 UPDATED SELECTION UI WITH JD & RUN BUTTON
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-6 max-w-2xl mx-auto">
+                        <div className="text-center mb-10">
+                            <h2 className="text-4xl font-medium mb-3 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tight">AI Interview Uplink</h2>
+                            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black">Configure Session Parameters</p>
                         </div>
 
-                        {/* 🔴 NEW: Job Description Input Area */}
-                        <div className="bg-[#050505] border border-white/5 p-6 rounded-[2rem] mb-8 group focus-within:border-indigo-500/30 transition-all">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Briefcase className="text-indigo-400 w-4 h-4" />
-                                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Target Job Description (Optional)</span>
+                        {/* Job Description Input Area */}
+                        <div className="bg-[#050505] border border-white/5 rounded-[2.5rem] p-8 mb-8 group focus-within:border-indigo-500/30 transition-all shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-focus-within:opacity-30 transition-opacity">
+                                <FileText size={60} className="text-indigo-400" />
+                            </div>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                    <Briefcase className="text-indigo-400 w-4 h-4" />
+                                </div>
+                                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Target Job Description</span>
                             </div>
                             <textarea 
                                 value={jobDescription}
                                 onChange={(e) => setJobDescription(e.target.value)}
-                                placeholder="Paste the job requirements here to generate targeted questions..."
-                                className="w-full bg-transparent border-none outline-none text-sm text-zinc-300 min-h-[100px] resize-none placeholder:text-zinc-800"
+                                placeholder="Paste your target JD here... (AI will generate questions strictly from this text)"
+                                className="w-full bg-transparent border-none outline-none text-sm text-zinc-300 min-h-[120px] resize-none placeholder:text-zinc-800 leading-relaxed"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Difficulty Selector */}
+                        <div className="grid grid-cols-3 gap-4 mb-8">
                             {(['Low', 'Moderate', 'Pro'] as Difficulty[]).map((level) => (
-                                <motion.button
+                                <button
                                     key={level}
-                                    whileHover={{ scale: 1.05, borderColor: 'rgba(99,102,241,0.5)' }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => { setDifficulty(level); generateQuestion(level); }}
-                                    className="bg-[#050505] border border-white/5 p-8 rounded-[2rem] group transition-all"
+                                    onClick={() => setDifficulty(level)}
+                                    className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        difficulty === level 
+                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]' 
+                                        : 'bg-[#050505] border-white/5 text-zinc-500 hover:border-white/20'
+                                    }`}
                                 >
-                                    <div className={`w-12 h-12 rounded-2xl mb-6 flex items-center justify-center mx-auto ${
-                                        level === 'Low' ? 'bg-emerald-500/10 text-emerald-400' : 
-                                        level === 'Moderate' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-rose-500/10 text-rose-400'
-                                    }`}>
-                                        {level === 'Low' ? <Zap size={24}/> : level === 'Moderate' ? <BarChart size={24}/> : <BrainCircuit size={24}/>}
-                                    </div>
-                                    <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-2">{level}</h3>
-                                    <p className="text-zinc-600 text-[10px] uppercase font-bold">
-                                        {level === 'Low' ? 'Fundamentals' : level === 'Moderate' ? 'Application' : 'Architectural'}
-                                    </p>
-                                </motion.button>
+                                    {level}
+                                </button>
                             ))}
+                        </div>
+
+                        {/* 🔴 THE RUN BUTTON 🔴 */}
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => generateQuestion()}
+                            disabled={!difficulty || isGenerating}
+                            className={`w-full py-5 rounded-3xl font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-3 transition-all ${
+                                difficulty 
+                                ? 'bg-white text-black shadow-[0_10px_40px_rgba(255,255,255,0.15)] hover:bg-cyan-400' 
+                                : 'bg-white/5 text-zinc-700 cursor-not-allowed'
+                            }`}
+                        >
+                            {isGenerating ? (
+                                <>Analyzing Parameters <RefreshCw size={16} className="animate-spin" /></>
+                            ) : (
+                                <>Initialize Simulation <Play size={16} fill="currentColor" /></>
+                            )}
+                        </motion.button>
+
+                        <div className="mt-8 text-center">
+                            <p className="text-zinc-700 text-[9px] uppercase font-bold tracking-widest flex items-center justify-center gap-2">
+                                <Sparkles size={12} /> Neural Processing Powered by Puter.js
+                            </p>
                         </div>
                     </motion.div>
                 ) : (
@@ -172,8 +198,8 @@ export default function InterviewMode() {
                                         </div>
                                         <div>
                                             <span className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">{difficulty} Level</span>
-                                            <h2 className="text-lg font-bold text-white">
-                                                {jobDescription.trim() ? "JD Targeting" : "Profile Analysis"}
+                                            <h2 className="text-lg font-bold text-white uppercase tracking-tight">
+                                                {jobDescription.trim() ? "JD Targeted Session" : "Profile Based Session"}
                                             </h2>
                                         </div>
                                     </div>
@@ -185,20 +211,20 @@ export default function InterviewMode() {
                                 <AnimatePresence mode='wait'>
                                     {currentQuestion && (
                                         <motion.div key={currentQuestion} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-                                            <p className="text-2xl font-medium text-zinc-100 leading-tight">"{currentQuestion}"</p>
+                                            <p className="text-2xl font-medium text-zinc-100 leading-tight border-l-2 border-indigo-500 pl-6">"{currentQuestion}"</p>
                                             
                                             <div className="relative group">
                                                 <textarea 
                                                     value={userAnswer}
                                                     onChange={(e) => setUserAnswer(e.target.value)}
-                                                    placeholder="Briefly explain your answer..."
-                                                    className="w-full bg-[#080808] border border-white/5 rounded-3xl p-6 min-h-[120px] text-sm outline-none focus:border-indigo-500/40 transition-all placeholder:text-zinc-800 resize-none"
+                                                    placeholder="Type your technical response here..."
+                                                    className="w-full bg-[#080808] border border-white/5 rounded-3xl p-6 min-h-[150px] text-sm outline-none focus:border-indigo-500/40 transition-all placeholder:text-zinc-800 resize-none shadow-inner"
                                                 />
                                                 <motion.button 
                                                     whileTap={{ scale: 0.9 }}
                                                     onClick={submitAnswer}
                                                     disabled={isEvaluating || !userAnswer.trim()}
-                                                    className="absolute bottom-4 right-4 bg-indigo-600 text-white p-3 rounded-2xl shadow-xl hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                                                    className="absolute bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-2xl shadow-xl hover:bg-indigo-500 disabled:opacity-50 transition-colors"
                                                 >
                                                     <Send size={20} />
                                                 </motion.button>
@@ -210,29 +236,30 @@ export default function InterviewMode() {
                                 {isEvaluating && (
                                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
                                         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-10 h-10 border-t-2 border-indigo-400 rounded-full" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 animate-pulse">Analyzing Logic...</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 animate-pulse">Analyzing Technical Depth...</span>
                                     </div>
                                 )}
                             </div>
 
                             <AnimatePresence>
                                 {evaluation && (
-                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-indigo-500/5 border border-indigo-500/20 rounded-[2.5rem] p-8">
+                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-indigo-500/5 border border-indigo-500/20 rounded-[2.5rem] p-8 relative overflow-hidden">
                                         <div className="flex justify-between items-center mb-6">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 size={16} className="text-indigo-400" />
-                                                <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Response Analysis</span>
+                                                <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Response Matrix</span>
                                             </div>
                                             <div className="px-4 py-1.5 bg-indigo-500/10 rounded-full border border-indigo-500/20 text-xl font-black text-white">
                                                 {evaluation.score}%
                                             </div>
                                         </div>
-                                        <p className="text-zinc-400 italic text-sm leading-relaxed mb-6">"{evaluation.feedback}"</p>
+                                        <p className="text-zinc-400 italic text-sm leading-relaxed mb-8 border-l border-white/10 pl-4">"{evaluation.feedback}"</p>
                                         <motion.button 
+                                            whileHover={{ gap: '15px' }}
                                             onClick={() => generateQuestion()}
-                                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white bg-indigo-600/20 px-6 py-3 rounded-xl border border-indigo-500/30 hover:bg-indigo-600 transition-all"
+                                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white bg-indigo-600/20 px-8 py-4 rounded-xl border border-indigo-500/30 hover:bg-indigo-600 transition-all"
                                         >
-                                            <RefreshCw size={14} /> Next Question
+                                            <RefreshCw size={14} /> Next Technical Challenge
                                         </motion.button>
                                     </motion.div>
                                 )}
@@ -241,17 +268,17 @@ export default function InterviewMode() {
 
                         {/* RIGHT: Session Information */}
                         <div className="lg:col-span-4 space-y-6">
-                            <div className="bg-[#050505] border border-white/5 rounded-[2rem] p-8">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-6 flex items-center gap-2"><Zap size={14} className="text-indigo-500" /> Session Info</h3>
+                            <div className="bg-[#050505] border border-white/5 rounded-[2rem] p-8 shadow-xl">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-6 flex items-center gap-2"><Zap size={14} className="text-indigo-500" /> Session Node</h3>
                                 <div className="space-y-6">
                                     <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                        <span className="text-[9px] text-zinc-500 font-bold uppercase block mb-1">
-                                            {jobDescription.trim() ? "Active JD" : "Target Tech"}
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase block mb-2">
+                                            {jobDescription.trim() ? "Active Context: JD" : "Active Context: Profile"}
                                         </span>
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {jobDescription.trim() ? (
                                                 <div className="flex items-center gap-2 text-[9px] font-bold text-indigo-300">
-                                                    <FileText size={12}/> Custom JD Loaded
+                                                    <FileText size={12}/> Custom Logic Loaded
                                                 </div>
                                             ) : (
                                                 userData?.skills?.slice(0, 4).map((s: any, i: number) => (
@@ -261,7 +288,17 @@ export default function InterviewMode() {
                                         </div>
                                     </div>
                                     <div className="border-t border-white/5 pt-6">
-                                        <button onClick={() => { setDifficulty(null); setJobDescription(""); }} className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-rose-400 transition-colors">Reset Session</button>
+                                        <button 
+                                            onClick={() => { 
+                                                setDifficulty(null); 
+                                                setIsSessionStarted(false); 
+                                                setQuestionCount(0); 
+                                                setEvaluation(null);
+                                            }} 
+                                            className="w-full py-3 bg-rose-500/5 text-rose-500 border border-rose-500/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all"
+                                        >
+                                            Terminate Session
+                                        </button>
                                     </div>
                                 </div>
                             </div>
