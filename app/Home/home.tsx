@@ -21,7 +21,7 @@ export default function Hero(){
                 <h4> "Built For Everyone"</h4>
                 <div className={styles.buttons}>
                     <a href="/interview"><button className= {style.button}>✨ AI Interview</button></a>
-                    <a href="/Pathfindeer"><button className= {style.button}>🚀 Pathfinder  </button></a>
+                    <a href="/pathfindeer"><button className= {style.button}>🚀 Pathfinder  </button></a>
                     <a href="/community"><button className= {style.button}> 🌐community </button></a>
                     <a href="/dashboard"><button className= {style.button}>📊Dashboard</button></a>
                 </div>
