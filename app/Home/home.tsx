@@ -20,7 +20,7 @@ export default function Hero(){
                 </h5>
                 <h4> "Built For Everyone"</h4>
                 <div className={styles.buttons}>
-                    <a href="/ats-checker"><button className= {style.button}>✨Resume ATS</button></a>
+                    <a href="/interview"><button className= {style.button}>✨ AI Interview</button></a>
                     <a href="/opportunities"><button className= {style.button}>🚀 Grow  </button></a>
                     <a href="/community"><button className= {style.button}> 🌐community </button></a>
                     <a href="/dashboard"><button className= {style.button}>📊Dashboard</button></a>
