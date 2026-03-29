@@ -23,7 +23,7 @@ export default function Hero(){
                     <a href="/interview"><button className= {style.button}>✨ AI Interview</button></a>
                     <a href="/pathfindeer"><button className= {style.button}>🚀 Pathfinder  </button></a>
                     <a href="/jobs"><button className= {style.button}> 🌐Global Jobs </button></a>
-                    <a href="/dashboard"><button className= {style.button}>📊Dashboard</button></a>
+                    <a href="/project"><button className= {style.button}>📊Project</button></a>
                 </div>
                 <h3>Start Building With Thinkhatch!</h3>
                 <h5><a href="/dashboard"><button className={style.button}>Build Now!</button></a></h5>
