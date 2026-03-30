@@ -27,7 +27,7 @@ export default function ThinkhatchTutor() {
     const [progress, setProgress] = useState(0);
     const [showCertificate, setShowCertificate] = useState(false);
 
-    // 🧠 AI LOGIC: Generate Syllabus & Content in one go for instant clicks
+    // 🧠 AI LOGIC: Deep-Dive Curriculum Generator
     const generateSyllabus = async () => {
         if (!topic.trim()) return;
         setIsGenerating(true);
@@ -37,18 +37,23 @@ export default function ThinkhatchTutor() {
 
         const puter = (window as any).puter;
         
+        // 🔴 MASTERSTROKE PROMPT: Forces AI to teach in detail with examples
         const aiPrompt = `
-            Act as an Expert AI Tutor for "Thinkhatch Academy". The user wants to learn: "${topic}".
-            Create a 4-step beginner-friendly learning roadmap.
-            For each step, provide the title, a 2-sentence simple explanation, and a fun quick fact.
+            Act as an Expert Master Professor for "Thinkhatch Academy". The user wants to learn: "${topic}".
+            Create a 4-step beginner-to-advanced learning roadmap.
             
-            OUTPUT STRICTLY IN THIS JSON FORMAT:
+            For each step, you MUST provide:
+            1. "title": The module name.
+            2. "explanation": A HIGHLY DETAILED, in-depth explanation. Write at least 3 to 4 comprehensive paragraphs. Explain the core concepts deeply, provide real-world examples, and use simple analogies. Teach it like you are explaining to a curious student. Use '\\n\\n' to separate paragraphs. DO NOT GIVE SHORT 1-LINE ANSWERS.
+            3. "quick_fact": A mind-blowing, lesser-known fun fact.
+            
+            OUTPUT STRICTLY IN THIS JSON FORMAT (No markdown, just raw JSON):
             {
               "modules": [
                 {
                   "id": 1,
                   "title": "Module Name",
-                  "explanation": "Simple explanation here.",
+                  "explanation": "Paragraph 1...\\n\\nParagraph 2...\\n\\nParagraph 3...",
                   "quick_fact": "A fun fact.",
                   "completed": false
                 }
@@ -141,7 +146,7 @@ export default function ThinkhatchTutor() {
                                 
                                 <input 
                                     value={topic} onChange={(e) => setTopic(e.target.value)} disabled={isGenerating || modules.length > 0}
-                                    placeholder="e.g. Blockchain, Python, Space Time..."
+                                    placeholder="e.g. Quantum Physics, React.js..."
                                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-sm focus:border-purple-500 outline-none transition-all mb-4"
                                 />
                                 <button 
@@ -151,7 +156,7 @@ export default function ThinkhatchTutor() {
                                     }`}
                                 >
                                     {isGenerating ? <Loader2 className="animate-spin" size={16}/> : modules.length > 0 ? <CheckCircle2 size={16}/> : <Play size={16} fill="currentColor"/>}
-                                    {isGenerating ? 'Designing Curriculum...' : modules.length > 0 ? 'Curriculum Ready' : 'Start Learning'}
+                                    {isGenerating ? 'Building Master Course...' : modules.length > 0 ? 'Curriculum Ready' : 'Start Learning'}
                                 </button>
                             </div>
 
@@ -203,13 +208,14 @@ export default function ThinkhatchTutor() {
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[100px] pointer-events-none" />
                                             
                                             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 border border-purple-500/20">
-                                                <Sparkles size={12} /> Live Session
+                                                <Sparkles size={12} /> Live Masterclass
                                             </div>
 
                                             <h2 className="text-4xl font-black text-white mb-6 leading-tight">{m.title}</h2>
                                             
-                                            <div className="prose prose-invert prose-p:text-slate-300 prose-p:leading-relaxed mb-10">
-                                                <p className="text-lg">{m.explanation}</p>
+                                            {/* 🔴 MAGIC HERE: whitespace-pre-wrap ensures paragraphs are rendered properly */}
+                                            <div className="prose prose-invert prose-p:text-slate-300 prose-p:leading-relaxed mb-10 max-w-none">
+                                                <p className="text-lg whitespace-pre-wrap leading-relaxed tracking-wide">{m.explanation}</p>
                                             </div>
 
                                             <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-12 flex items-start gap-4">
@@ -238,10 +244,9 @@ export default function ThinkhatchTutor() {
                     </div>
                 ) : (
                     
-                    /* 🎓 THE THINKHATCH CERTIFICATE (God Level UI) */
+                    /* 🎓 THE THINKHATCH CERTIFICATE */
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto print:max-w-full">
                         
-                        {/* Pre-Certificate Name Input (Hidden on Print) */}
                         {!studentName && (
                             <div className="bg-[#0f172a] border border-white/10 p-10 rounded-[2rem] text-center shadow-2xl print:hidden">
                                 <Medal size={60} className="text-amber-400 mx-auto mb-6" />
@@ -259,7 +264,6 @@ export default function ThinkhatchTutor() {
                             </div>
                         )}
 
-                        {/* THE ACTUAL CERTIFICATE */}
                         {studentName && (
                             <div className="space-y-6">
                                 <div className="flex justify-end print:hidden">
@@ -268,17 +272,13 @@ export default function ThinkhatchTutor() {
                                     </button>
                                 </div>
                                 
-                                {/* 📜 Certificate Canvas */}
                                 <div className="bg-[#050b14] relative p-1 md:p-4 rounded-sm print:p-0">
-                                    {/* Golden/Cyan Border Container */}
                                     <div className="border-[8px] border-double border-amber-500/40 p-10 md:p-20 relative bg-[#020617] overflow-hidden">
                                         
-                                        {/* Watermark / Background Graphics */}
                                         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
                                         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
                                         <BrainCircuit size={400} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" />
 
-                                        {/* Certificate Content */}
                                         <div className="relative z-10 text-center flex flex-col items-center">
                                             
                                             <div className="flex items-center gap-3 mb-10">
@@ -297,7 +297,6 @@ export default function ThinkhatchTutor() {
                                                 For successfully completing the AI-generated accelerated course on <strong className="text-white uppercase">{topic}</strong>. Demonstrating exceptional dedication to continuous learning via the Thinkhatch Neural Tutor.
                                             </p>
 
-                                            {/* Signatures & Badges */}
                                             <div className="flex justify-between items-end w-full max-w-3xl border-t border-white/10 pt-8 mt-10">
                                                 <div className="text-center">
                                                     <div className="font-mono text-cyan-400 text-xl mb-1 signature-font">AI Core v5.0</div>
