@@ -9,7 +9,7 @@ export default function Hero(){
             <div className= {styles.heroSection}>
                 <h3>" Build Smarter with AI "</h3>
                 <h5>
-                    <a href="/agent_buildnpm install -D @types/file-saver"><button className= {style.button}>👤Build</button></a>
+                    <a href="/agent_build"><button className= {style.button}>👤Build</button></a>
                     <a href="/Market"><button className= {style.button}>🤖 Trends </button></a>
                 </h5>
                 <h4>Tools and guidance for students, Professionals</h4>
