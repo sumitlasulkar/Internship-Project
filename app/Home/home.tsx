@@ -10,7 +10,7 @@ export default function Hero(){
                 <h3>" Build Smarter with AI "</h3>
                 <h5>
                     <a href="/guide"><button className= {style.button}>👤Guidance</button></a>
-                    <a href="/chatbot"><button className= {style.button}>🤖 Resume AI </button></a>
+                    <a href="/Market"><button className= {style.button}>🤖 Trends </button></a>
                 </h5>
                 <h4>Tools and guidance for students, Professionals</h4>
                 <h4>Let's Create with Thinkhatch</h4>
