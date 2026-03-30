@@ -26,7 +26,7 @@ export default function Hero(){
                     <a href="/project"><button className= {style.button}>📊Project</button></a>
                 </div>
                 <h3>Start Building With Thinkhatch!</h3>
-                <h5><a href="/dashboard"><button className={style.button}>Learn!</button></a></h5>
+                <h5><a href="/teacher"><button className={style.button}>Learn!</button></a></h5>
             </div>
     );
 }
