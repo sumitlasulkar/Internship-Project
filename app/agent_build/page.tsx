@@ -19,7 +19,7 @@ interface AgentPayload { project_name: string; steps: AgentStep[]; files: Genera
 export default function AgenticBuilder() {
     const [prompt, setPrompt] = useState("");
     const [isAgentActive, setIsAgentActive] = useState(false);
-    const [terminalLogs, setTerminalLogs] = useState<{type: 'cmd' | 'log' | 'success', text: string}[]>([]);
+    const [terminalLogs, setTerminalLogs] = useState<{type: 'cmd' | 'log' | 'success' | 'error', text: string}[]>([]);
     const [files, setFiles] = useState<GeneratedFile[]>([]);
     const [activeFile, setActiveFile] = useState<string | null>(null);
     const [buildComplete, setBuildComplete] = useState(false);
@@ -34,31 +34,20 @@ export default function AgenticBuilder() {
 
     // Auto-scroll logic
     useEffect(() => { terminalEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [terminalLogs]);
-    
-    // Editor scroll jab ban jaye
-    useEffect(() => {
-        if (buildComplete) {
-            setTimeout(() => {
-                editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 300);
-        }
-    }, [buildComplete]);
 
     const deployAgent = async () => {
         if (!prompt.trim()) return;
         
         setIsAgentActive(true);
-        setBuildComplete(false);
+        setBuildComplete(false); // Reset build state
         setFiles([]);
         setTerminalLogs([{ type: 'log', text: 'Initiating Autonomous Agent Core v4.0...' }]);
 
         const puter = (window as any).puter;
         
         const aiPrompt = `
-            Act as an Autonomous AI Software Engineer. 
-            The user wants to build: "${prompt}".
-
-            Output strictly in this JSON format (no markdown, no extra text):
+            Act as an Autonomous AI Software Engineer. User wants to build: "${prompt}".
+            Output strictly in this JSON format:
             {
               "project_name": "app-name",
               "steps": [
@@ -82,58 +71,48 @@ export default function AgenticBuilder() {
             let data: AgentPayload;
             try {
                 data = JSON.parse(rawData);
-                // 🔴 GUARANTEE FILES EXIST
-                if (!data.files || data.files.length === 0) {
-                    data.files = [{ filename: "app.js", code: "// Auto-generated fallback code\nconsole.log('Success');" }];
-                }
-                if (!data.steps || data.steps.length === 0) {
-                    data.steps = [{ action_log: "Executing standard build...", command: "npm install" }];
-                }
+                // Fail-safes to prevent loop crashes
+                if (!data.files || data.files.length === 0) data.files = [{ filename: "app.js", code: "// Code\nconsole.log('Success');" }];
+                if (!data.steps || data.steps.length === 0) data.steps = [{ action_log: "Building...", command: "npm i" }];
             } catch(e) {
-                // 🔴 HARD FALLBACK IF JSON FAILS COMPLETELY
-                data = {
-                    project_name: "ai-project",
-                    steps: [{ action_log: "Forcing initialization...", command: "npm init -y" }],
-                    files: [{ filename: "index.js", code: "// Error parsing AI response. Showing fallback editor." }]
-                };
+                data = { project_name: "ai-project", steps: [{ action_log: "Forced init...", command: "npm init -y" }], files: [{ filename: "index.js", code: "// Error parsing AI." }] };
             }
 
             simulateTerminalExecution(data);
 
         } catch (err) {
             console.error(err);
-            setTerminalLogs(prev => [...prev, { type: 'log', text: '[ERROR] Core crashed. Forcing UI reveal...' }]);
-            // Even on crash, force UI to show
-            simulateTerminalExecution({
-                project_name: "recovery-mode",
-                steps: [{ action_log: "System recovery...", command: "npm run rescue" }],
-                files: [{ filename: "rescue.js", code: "// System recovered." }]
-            });
+            setTerminalLogs(prev => [...prev, { type: 'error', text: '[ERROR] Core crashed. Booting recovery mode...' }]);
+            simulateTerminalExecution({ project_name: "recovery", steps: [{ action_log: "Recovery...", command: "rescue" }], files: [{ filename: "rescue.js", code: "// Recovered." }] });
         }
     };
 
     const simulateTerminalExecution = async (data: AgentPayload) => {
-        setTerminalLogs([{ type: 'log', text: `[AGENT_BOT]: Assigned to project '${data.project_name}'. Commencing TURBO build.` }]);
-        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        setTerminalLogs([{ type: 'log', text: `[AGENT_BOT]: Assigned to '${data.project_name}'. TURBO build active.` }]);
+        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-        for (const step of data.steps) {
+        // Safely map over steps to avoid crashes
+        for (const step of data?.steps || []) {
             await sleep(150); 
             setTerminalLogs(prev => [...prev, { type: 'cmd', text: `root@agent-os:~/${data.project_name}# ${step.command}` }]);
             await sleep(300); 
             setTerminalLogs(prev => [...prev, { type: 'log', text: `> ${step.action_log}` }]);
-            setTerminalLogs(prev => [...prev, { type: 'success', text: `[OK] Execution successful.` }]);
+            setTerminalLogs(prev => [...prev, { type: 'success', text: `[OK] Task completed.` }]);
         }
 
         await sleep(200);
-        setTerminalLogs(prev => [...prev, { type: 'log', text: '[AGENT_BOT]: Writing source code to filesystem...' }]);
+        setTerminalLogs(prev => [...prev, { type: 'log', text: '[AGENT_BOT]: Writing files...' }]);
         
         await sleep(300);
-        setFiles(data.files);
-        if (data.files.length > 0) setActiveFile(data.files[0].filename);
+        setFiles(data?.files || []);
+        if (data?.files?.length > 0) setActiveFile(data.files[0].filename);
         
         setIsAgentActive(false);
-        setBuildComplete(true); // 🔴 TRIGGER UI REVEAL
-        setTerminalLogs(prev => [...prev, { type: 'success', text: '[AGENT_BOT]: Architecture deployed successfully.' }]);
+        setBuildComplete(true); // 🔴 This will unlock the buttons
+        setTerminalLogs(prev => [...prev, { type: 'success', text: '[AGENT_BOT]: Build ready. Access granted to UI.' }]);
+        
+        // Auto scroll to editor
+        setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
     };
 
     // 🚀 EXPORTS
@@ -193,6 +172,7 @@ export default function AgenticBuilder() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     
+                    {/* LEFT PANEL */}
                     <div className="xl:col-span-4 space-y-6 lg:sticky lg:top-8">
                         <div>
                             <h1 className="text-5xl font-black tracking-tighter italic uppercase text-white leading-none mb-2">
@@ -224,9 +204,11 @@ export default function AgenticBuilder() {
                         </div>
                     </div>
 
+                    {/* RIGHT PANEL */}
                     <div className="xl:col-span-8 space-y-6">
+                        
                         {/* TERMINAL */}
-                        <div className="bg-[#050505] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col h-[350px]">
+                        <div className="bg-[#050505] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col h-[300px]">
                             <div className="bg-white/5 border-b border-white/5 px-6 py-3 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <SquareTerminal size={14} className="text-slate-500" />
@@ -243,7 +225,7 @@ export default function AgenticBuilder() {
                                 <AnimatePresence initial={false}>
                                     {terminalLogs.map((log, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                                            className={`${log.type === 'cmd' ? 'text-cyan-400 font-bold' : log.type === 'success' ? 'text-emerald-400' : 'text-slate-300'}`}
+                                            className={`${log.type === 'cmd' ? 'text-cyan-400 font-bold' : log.type === 'error' ? 'text-rose-500' : log.type === 'success' ? 'text-emerald-400' : 'text-slate-300'}`}
                                         >
                                             {log.text}
                                         </motion.div>
@@ -253,64 +235,65 @@ export default function AgenticBuilder() {
                             </div>
                         </div>
 
-                        {/* 🔴 GUARANTEED TO SHOW ONCE BUILD COMPLETE */}
-                        {buildComplete && (
-                            <motion.div ref={editorRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                                
-                                {/* 🚀 EXPORT BUTTONS */}
-                                <div className="bg-[#0a0f18] border border-cyan-500/30 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Build Complete</span>
+                        {/* 🔴 EXPORT BUTTONS & EDITOR (NOW HARDCODED TO ALWAYS SHOW) */}
+                        <div ref={editorRef} className="space-y-6 pt-4">
+                            
+                            {/* EXPORT TOOLBAR */}
+                            <div className={`bg-[#0a0f18] border rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between transition-all duration-500 ${buildComplete ? 'border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)]' : 'border-white/5 opacity-50 grayscale'}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2 h-2 rounded-full ${buildComplete ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${buildComplete ? 'text-emerald-500' : 'text-slate-600'}`}>
+                                        {buildComplete ? 'Build Complete' : 'Awaiting Build'}
+                                    </span>
+                                </div>
+                                <div className="flex gap-3 w-full sm:w-auto">
+                                    <button disabled={!buildComplete} onClick={handleZipDownload} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2 disabled:cursor-not-allowed">
+                                        <Download size={14} /> ZIP
+                                    </button>
+                                    <button disabled={!buildComplete} onClick={handleLocalSync} className="flex-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2 disabled:cursor-not-allowed">
+                                        <FolderSync size={14} /> Sync
+                                    </button>
+                                    <button disabled={!buildComplete} onClick={() => setShowGitModal(true)} className="flex-1 bg-white text-black hover:bg-slate-200 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500">
+                                        <Github size={14} /> Git
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* VS CODE UI */}
+                            <div className={`bg-[#0d1117] border rounded-[2rem] overflow-hidden shadow-2xl flex h-[450px] transition-all duration-500 ${buildComplete ? 'border-white/10' : 'border-white/5 opacity-50 grayscale'}`}>
+                                <div className="w-48 lg:w-64 bg-black/40 border-r border-white/5 flex flex-col">
+                                    <div className="p-4 border-b border-white/5">
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                                            <FolderTree size={12} /> EXPLORER
+                                        </span>
                                     </div>
-                                    <div className="flex gap-3 w-full sm:w-auto">
-                                        <button onClick={handleZipDownload} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2">
-                                            <Download size={14} /> ZIP
-                                        </button>
-                                        <button onClick={handleLocalSync} className="flex-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2">
-                                            <FolderSync size={14} /> Sync
-                                        </button>
-                                        <button onClick={() => setShowGitModal(true)} className="flex-1 bg-white text-black hover:bg-slate-200 py-3 px-4 rounded-xl text-[10px] font-black uppercase flex justify-center gap-2">
-                                            <Github size={14} /> Git
-                                        </button>
+                                    <div className="p-2 space-y-1 overflow-y-auto">
+                                        {files.map((f, i) => (
+                                            <button key={i} onClick={() => setActiveFile(f.filename)} disabled={!buildComplete}
+                                                className={`w-full text-left px-4 py-2 text-xs font-mono rounded-lg transition-all flex items-center gap-3 ${activeFile === f.filename ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                <FileCode2 size={14} className={activeFile === f.filename ? 'text-cyan-500' : 'text-slate-600'} />
+                                                {f.filename}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* VS CODE UI */}
-                                <div className="bg-[#0d1117] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl flex h-[450px]">
-                                    <div className="w-48 lg:w-64 bg-black/40 border-r border-white/5 flex flex-col">
-                                        <div className="p-4 border-b border-white/5">
-                                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                                <FolderTree size={12} /> EXPLORER
-                                            </span>
-                                        </div>
-                                        <div className="p-2 space-y-1 overflow-y-auto">
-                                            {files.map((f, i) => (
-                                                <button key={i} onClick={() => setActiveFile(f.filename)}
-                                                    className={`w-full text-left px-4 py-2 text-xs font-mono rounded-lg transition-all flex items-center gap-3 ${activeFile === f.filename ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:bg-white/5'}`}
-                                                >
-                                                    <FileCode2 size={14} className={activeFile === f.filename ? 'text-cyan-500' : 'text-slate-600'} />
-                                                    {f.filename}
-                                                </button>
-                                            ))}
+                                <div className="flex-1 flex flex-col bg-[#0d1117] overflow-hidden">
+                                    <div className="bg-[#010409] px-4 py-3 border-b border-white/5 flex">
+                                        <div className="px-4 py-1.5 bg-[#0d1117] border-t border-cyan-500 text-xs font-mono text-cyan-200">
+                                            {activeFile || 'No file selected'}
                                         </div>
                                     </div>
-
-                                    <div className="flex-1 flex flex-col bg-[#0d1117] overflow-hidden">
-                                        <div className="bg-[#010409] px-4 py-3 border-b border-white/5 flex">
-                                            <div className="px-4 py-1.5 bg-[#0d1117] border-t border-cyan-500 text-xs font-mono text-cyan-200">
-                                                {activeFile || 'No file selected'}
-                                            </div>
-                                        </div>
-                                        <div className="p-6 overflow-auto flex-1 custom-scrollbar">
-                                            <pre className="text-sm font-mono text-slate-300 whitespace-pre-wrap">
-                                                {files.find(f => f.filename === activeFile)?.code || '// Select a file from the explorer'}
-                                            </pre>
-                                        </div>
+                                    <div className="p-6 overflow-auto flex-1 custom-scrollbar">
+                                        <pre className="text-sm font-mono text-slate-300 whitespace-pre-wrap">
+                                            {buildComplete ? (files.find(f => f.filename === activeFile)?.code || '// Select a file') : '// System Idle. Enter prompt to generate code.'}
+                                        </pre>
                                     </div>
                                 </div>
-                            </motion.div>
-                        )}
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -324,6 +307,7 @@ export default function AgenticBuilder() {
                                 <div className="text-center py-8">
                                     <CheckCircle2 size={60} className="text-emerald-500 mx-auto mb-6" />
                                     <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Deployed!</h3>
+                                    <p className="text-slate-400 text-sm">Your code is live on GitHub.</p>
                                 </div>
                             ) : (
                                 <>
